@@ -22,10 +22,7 @@ export class VirtualMachine {
     private E;
     private RTS: any[];
 
-    private instrs: any[];
-
-    constructor(instrs: any[]) {
-        this.instrs = instrs;
+    constructor() {
     }
 
     private microcode = {
@@ -52,6 +49,82 @@ export class VirtualMachine {
                 this.PC++
                 this.OS.push(this.apply_binop(instr.sym, this.OS.pop(), this.OS.pop()))
             },
+        POP:
+            instr => {
+                this.PC++
+                this.OS.pop()
+            },
+        ENTER_SCOPE:
+            instr => {
+                this.PC++
+                this.RTS.push({ tag: 'BLOCK_FRAME', env: this.E })
+                const locals = instr.syms
+                // const unassigneds = locals.map(_ => unassigned)
+                // this.E = extend(locals, unassigneds, this.E)
+            },
+        EXIT_SCOPE:
+            instr => {
+                this.PC++
+                this.E = this.RTS.pop().env
+            },
+        // LD:
+        //     instr => {
+        //         this.PC++
+        //         this.OS.push( this.lookup(instr.sym, this.E))
+        //     },
+        // ASSIGN:
+        //     instr => {
+        //         this.PC++
+        //         assign_value(instr.sym, peek(OS), E)
+        //     },
+        LDF:
+            instr => {
+                this.PC++
+                this.OS.push({
+                    tag: 'CLOSURE', prms: instr.prms,
+                    addr: instr.addr, env: this.E
+                })
+            },
+        // CALL:
+        //     instr => {
+        //         const arity = instr.arity
+        //         let args = []
+        //         for (let i = arity - 1; i >= 0; i--)
+        //             args[i] = OS.pop()
+        //         const sf = OS.pop()
+        //         if (sf.tag === 'BUILTIN') {
+        //             PC++
+        //             return push(OS, apply_builtin(sf.sym, args))
+        //         }
+        //         push(RTS, { tag: 'CALL_FRAME', addr: PC + 1, env: E })
+        //         E = extend(sf.prms, args, sf.env)
+        //         PC = sf.addr
+        //     },
+        // TAIL_CALL:
+        //     instr => {
+        //         const arity = instr.arity
+        //         let args = []
+        //         for (let i = arity - 1; i >= 0; i--)
+        //             args[i] = OS.pop()
+        //         const sf = OS.pop()
+        //         if (sf.tag === 'BUILTIN') {
+        //             PC++
+        //             return push(OS, apply_builtin(sf.sym, args))
+        //         }
+        //         // dont push on RTS here
+        //         E = extend(sf.prms, args, sf.env)
+        //         PC = sf.addr
+        //     },
+        // RESET:
+        //     instr => {
+        //         // keep popping...
+        //         const top_frame = RTS.pop()
+        //         if (top_frame.tag === 'CALL_FRAME') {
+        //             // ...until top frame is a call frame
+        //             PC = top_frame.addr
+        //             E = top_frame.env
+        //         }
+        //     }
     }
 
     private unop_microcode = {
@@ -83,24 +156,23 @@ export class VirtualMachine {
 
     private apply_binop = (op, v2, v1) => this.binop_microcode[op](v1, v2)
 
-    public run() {
+    public run(instrs) {
         this.OS = [];
         this.PC = 0;
         this.E = {};
         this.RTS = [];
 
         //print_code(instrs)
-        while (!(this.instrs[this.PC].tag === 'DONE')) {
+        while (!(instrs[this.PC].tag === 'DONE')) {
             //display("next instruction: ")
             //print_code([instrs[PC]]) 
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
-            const instr = this.instrs[this.PC]
-            console.log(instr)
+            const instr = instrs[this.PC]
             this.microcode[instr.tag](instr)
         }
-        return this.OS.pop();
+        return this.OS.at(-1);
     }
 }
 
