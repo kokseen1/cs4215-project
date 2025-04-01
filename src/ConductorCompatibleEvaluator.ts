@@ -36,7 +36,7 @@ export class SimpleLangEvaluator extends BasicEvaluator {
             const result = new VirtualMachine().run(new Compiler().compile_program(prog));
 
             // Send the result to the REPL
-            this.conductor.sendOutput(`Result of expression: ${result}`);
+            this.conductor.sendOutput(`Result of expression: ${result.toString()}`);
         } catch (error) {
             // Handle errors and send them to the REPL
             if (error instanceof Error) {
