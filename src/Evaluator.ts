@@ -2,10 +2,12 @@ import { CharStream, CommonTokenStream } from 'antlr4ng';
 import { SimpleLangLexer } from './parser/src/SimpleLangLexer';
 import { SimpleLangParser } from './parser/src/SimpleLangParser';
 import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
+import { VirtualMachine } from './VirtualMachine';
 
 export class SimpleLangEvaluator {
     private executionCount: number;
-    private visitor: SimpleLangEvaluatorVisitor;
+    public visitor: SimpleLangEvaluatorVisitor;
+    public vm: VirtualMachine;
 
     constructor() {
         this.executionCount = 0;
@@ -24,8 +26,14 @@ export class SimpleLangEvaluator {
             // Parse the input
             const tree = parser.prog();
 
-            // Evaluate the parsed tree
-            const result = this.visitor.visit(tree);
+            // Compile the parsed tree
+            const instrs = this.visitor.visitProg(tree);
+
+            // Instantiate the VM
+            this.vm = new VirtualMachine(instrs);
+
+            // Evaluate the instructions
+            const result = this.vm.run();
 
             // Send the result to the REPL
             console.log(`Result of expression: ${result}`);

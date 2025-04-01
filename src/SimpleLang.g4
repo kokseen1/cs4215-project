@@ -3,20 +3,15 @@ grammar SimpleLang;
 prog: statement* EOF;
 
 statement
-    : letStmt 
+    : expressionStmt 
     // | fnDecl
     // | whileStmt
     // | ifStmt
-    | expressionStmt 
     // | block
     ;
 
 expressionStmt
     : expression ';'
-    ;
-
-letStmt
-    : 'let' ID '=' expression ';'       // Variable declaration
     ;
 
 expression
@@ -27,8 +22,10 @@ expression
     | '(' expression ')' # parens
     ;
 
-ID  :   [a-zA-Z]+ ;      // match identifiers
+ID: [a-zA-Z]+; // match identifiers
 INT: [0-9]+;
 WS: [ \t\r\n]+ -> skip;
-ADD :   '+' ;
-SUB :   '-' ;
+ADD: '+';
+SUB: '-';
+MUL: '*';
+DIV: '/';
