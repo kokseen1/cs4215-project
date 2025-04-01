@@ -5,6 +5,8 @@ import { CharStream, CommonTokenStream } from 'antlr4ng';
 import { SimpleLangLexer } from './parser/src/SimpleLangLexer';
 import { SimpleLangParser } from './parser/src/SimpleLangParser';
 import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
+import { Compiler } from "./Compiler";
+import { VirtualMachine } from "./VirtualMachine";
 
 export class SimpleLangEvaluator extends BasicEvaluator {
     private executionCount: number;
@@ -29,7 +31,9 @@ export class SimpleLangEvaluator extends BasicEvaluator {
             const tree = parser.prog();
 
             // Evaluate the parsed tree
-            const result = this.visitor.visit(tree);
+            const prog = this.visitor.visit(tree);
+
+            const result = new VirtualMachine().run(new Compiler().compile_program(prog));
 
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result}`);
