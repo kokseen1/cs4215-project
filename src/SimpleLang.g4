@@ -64,11 +64,12 @@ expression:
 	| '&' 'mut' expression													# MutableBorrow
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
+	| op = ('!' | '-') expression											# UnaryOp
 	| '(' expression ')'													# Parens
-	| ID																	# Id
+	| BOOL																	# Bool
 	| INT																	# Int
 	| STRING																# Str
-	| BOOL																	# Bool;
+	| ID																	# Id;
 
 argList: expression (',' expression)*;
 
@@ -84,8 +85,9 @@ LE: '<=';
 GE: '>=';
 AND: '&&';
 OR: '||';
-ID: [a-zA-Z_][a-zA-Z0-9_]*;
+NOT: '!';
+BOOL: 'true' | 'false';
 INT: [0-9]+;
 STRING: '"' .*? '"';
-BOOL: 'true' | 'false';
+ID: [a-zA-Z_][a-zA-Z0-9_]*;
 WS: [ \t\r\n]+ -> skip;
