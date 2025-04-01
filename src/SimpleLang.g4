@@ -1,6 +1,6 @@
 grammar SimpleLang;
 
-prog: statement+;
+prog: statement*;
 
 statement:
 	letDecl
@@ -8,11 +8,14 @@ statement:
 	| funcDef
 	| ifStmt
 	| whileStmt
-	| block
+	| matchStmt
+	| structDef
+	| enumDef
 	| returnStmt
-	| expressionStmt;
+	| expressionStmt
+	| block;
 
-letDecl: 'let' ID (':' type)? ('mut')? ('=' expression)? ';';
+letDecl: 'let' ('mut')? ID (':' type)? ('=' expression)? ';';
 
 assign: ID '=' expression ';';
 
@@ -27,7 +30,19 @@ type:
 	| 'bool'
 	| 'String'
 	| '&' type
-	| '&' 'mut' type;
+	| '&' 'mut' type
+	| 'Box' '<' type '>'
+	| 'Rc' '<' type '>';
+
+structDef: 'struct' ID '{' structField (',' structField)* '}';
+structField: ID ':' type;
+
+enumDef: 'enum' ID '{' enumVariant (',' enumVariant)* '}';
+enumVariant: ID ('(' paramList ')')?;
+
+matchStmt: 'match' expression '{' matchArm+ '}';
+matchArm: pattern '=>' expression ',';
+pattern: ID | INT | STRING | '_';
 
 ifStmt: 'if' expression block ('else' block)?;
 
@@ -47,6 +62,8 @@ expression:
 	| ID '(' (argList)? ')'													# FunctionCall
 	| '&' expression														# Borrow
 	| '&' 'mut' expression													# MutableBorrow
+	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
+	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| '(' expression ')'													# Parens
 	| ID																	# Id
 	| INT																	# Int
