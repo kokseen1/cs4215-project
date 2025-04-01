@@ -29,7 +29,7 @@ export class SimpleLangEvaluator {
             const tree = parser.prog();
 
             // Convert the parsed tree into a json-like format
-            const prog = this.visitor.visitProg(tree);
+            const prog = this.visitor.visit(tree);
             console.log(JSON.stringify(prog));
 
             // Instantiate the compiler
