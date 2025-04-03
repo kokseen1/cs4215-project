@@ -1,5 +1,5 @@
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 function error(msg) {
@@ -135,6 +135,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     visitBlock(ctx: BlockContext) {
         // TODO: check if blk is needed here
         // blk required only if there are declarations (env needs to be extended)?
+        console.log("block")
         const stmts = ctx.statement();
         return {
             tag: "blk",
@@ -148,7 +149,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const expr = ctx.expression();
         const id = ctx.ID().getText();
         return {
-            tag:"let",
+            tag: "let",
             sym: id,
             expr: this.visit(expr)
         }
@@ -161,6 +162,48 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             tag: "assmt",
             sym: id,
             expr: this.visit(expr)
+        }
+    }
+
+    visitFuncDef(ctx: FuncDefContext) {
+        const id = ctx.ID().getText();
+        const params = ctx.paramList();
+        const retType = ctx.type();
+        const block = ctx.block();
+
+        return {
+            tag: "fun",
+            sym: id,
+            prms: this.visitParamList(params),
+            body: this.visit(block),
+            retType: this.visitType(retType),
+        }
+    }
+
+    visitParamList(ctx: ParamListContext) {
+        if (ctx === null) return []; // no parameters
+        const params = ctx.param();
+        return params.length === 0
+            ? error("error: empty params list") // should not happen here
+            : params.map(p => this.visit(p));
+    }
+
+    visitParam(ctx: ParamContext) {
+        const type = ctx.type();
+        const id = ctx.ID().getText();
+        return {
+            tag: "param",
+            id: id,
+            type: this.visit(type),
+        }
+    }
+
+    visitType(ctx: TypeContext) {
+        // TODO: support recursive types
+        if (ctx === null) return { tag: "type", sym: "void" } // void return type
+        return {
+            tag: "type",
+            sym: ctx.getText()
         }
     }
 

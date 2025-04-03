@@ -25,7 +25,7 @@ paramList: param (',' param)*;
 param: ID ':' type;
 
 type:
-	'i32'
+	'i32' // should be under a separate label
 	| 'f64'
 	| 'bool'
 	| 'String'
