@@ -25,14 +25,11 @@ paramList: param (',' param)*;
 param: ID ':' type;
 
 type:
-	'i32' // should be under a separate label
-	| 'f64'
-	| 'bool'
-	| 'String'
-	| '&' type
-	| '&' MUT type
-	| 'Box' '<' type '>'
-	| 'Rc' '<' type '>';
+	PRIM
+	| BOR PRIM
+	| BOR MUT PRIM
+	| 'Box' '<' PRIM '>'
+	| 'Rc' '<' PRIM '>';
 
 structDef: 'struct' ID '{' structField (',' structField)* '}';
 structField: ID ':' type;
@@ -60,8 +57,8 @@ expression:
 	| expression op = ('==' | '!=' | '<' | '>' | '<=' | '>=') expression	# Compare
 	| expression op = ('&&' | '||') expression								# Logical
 	| ID '(' (argList)? ')'													# FunctionCall
-	| '&' expression														# Borrow
-	| '&' MUT expression													# MutableBorrow
+	| BOR expression														# Borrow
+	| BOR MUT expression													# MutableBorrow
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp
@@ -73,7 +70,13 @@ expression:
 
 argList: expression (',' expression)*;
 
+BOR: '&';
 MUT: 'mut';
+PRIM:
+	'i32' 
+	| 'f64'
+	| 'bool'
+	| 'String';
 
 MUL: '*';
 DIV: '/';
