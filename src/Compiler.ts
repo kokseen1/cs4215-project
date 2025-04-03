@@ -56,6 +56,17 @@ export class Compiler {
                 this.compile(comp.alt)
                 goto_instruction.addr = this.wc
             },
+        while:
+            comp => {
+                const loop_start = this.wc
+                this.compile(comp.pred)
+                const jump_on_false_instruction = { tag: 'JOF', addr: undefined }
+                this.instrs[this.wc++] = jump_on_false_instruction
+                this.compile(comp.body)
+                this.instrs[this.wc++] = {tag: 'POP'}
+                this.instrs[this.wc++] = {tag: 'GOTO', addr: loop_start}
+                jump_on_false_instruction.addr = this.wc
+        },
         app:
             comp => {
                 this.compile(comp.fun)
