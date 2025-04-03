@@ -93,6 +93,19 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         }
     }
 
+    visitLogical(ctx: LogicalContext) {
+        const frst = ctx.expression(0);
+        const scnd = ctx.expression(1);
+        const sym = ctx._op.type;
+
+        return {
+            tag: "log",
+            frst: this.visit(frst),
+            scnd: this.visit(scnd),
+            sym: sym
+        }
+    }
+
     visitWhileStmt(ctx: WhileStmtContext) {
         const pred = ctx.expression();
         const body = ctx.block();

@@ -1,3 +1,5 @@
+import { SimpleLangParser } from "./parser/src/SimpleLangParser";
+
 export class Compiler {
     private instrs = [];
     private wc = 0;
@@ -27,15 +29,15 @@ export class Compiler {
             },
         log:
             comp => {
-                this.compile(comp.sym == '&&'
+                this.compile(comp.sym == SimpleLangParser.AND
                     ? {
-                        tag: 'cond_expr',
+                        tag: 'cond',
                         pred: comp.frst,
                         cons: comp.scnd,
                         alt: { tag: 'lit', val: false }
                     }
                     : {
-                        tag: 'cond_expr',
+                        tag: 'cond',
                         pred: comp.frst,
                         cons: { tag: 'lit', val: true },
                         alt: comp.scnd
