@@ -1,5 +1,5 @@
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, AssignContext, BlockContext, BoolContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 function error(msg) {
@@ -60,7 +60,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     // Helper function
-    visitBinOp(ctx: AddSubContext | MulDivContext) {
+    visitBinOp(ctx: AddSubContext | MulDivContext | CompareContext) {
         const frst = ctx.expression(0);
         const scnd = ctx.expression(1);
         return {
@@ -76,6 +76,10 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitMulDiv(ctx: MulDivContext) {
+        return this.visitBinOp(ctx);
+    }
+
+    visitCompare(ctx: CompareContext) {
         return this.visitBinOp(ctx);
     }
 

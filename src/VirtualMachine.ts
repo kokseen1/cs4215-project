@@ -144,13 +144,12 @@ export class VirtualMachine {
         [SimpleLangParser.MUL]: (x, y) => x * y,
         [SimpleLangParser.SUB]: (x, y) => x - y,
         [SimpleLangParser.DIV]: (x, y) => x / y,
-        // [SimpleLangParser.ADD]: (x, y) => x % y,
-        // [SimpleLangParser.ADD]: (x, y) => x < y,
-        // [SimpleLangParser.ADD]: (x, y) => x <= y,
-        // [SimpleLangParser.ADD]: (x, y) => x >= y,
-        // [SimpleLangParser.ADD]: (x, y) => x > y,
-        // [SimpleLangParser.ADD]: (x, y) => x === y,
-        // [SimpleLangParser.ADD]: (x, y) => x !== y
+        [SimpleLangParser.LT]: (x, y) => x < y,
+        [SimpleLangParser.GT]: (x, y) => x > y,
+        [SimpleLangParser.LE]: (x, y) => x <= y,
+        [SimpleLangParser.GE]: (x, y) => x >= y,
+        [SimpleLangParser.EQ]: (x, y) => x === y,
+        [SimpleLangParser.NEQ]: (x, y) => x !== y
     }
     private apply_unop = (op, v) => this.unop_microcode[op](v)
 
