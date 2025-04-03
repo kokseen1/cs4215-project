@@ -2,4 +2,4 @@ import { SimpleLangEvaluator } from './dist/Evaluator.js';
 
 var evaluator = new SimpleLangEvaluator();
 
-evaluator.evaluateChunk("fn f(a:&&i32) {}");
+evaluator.evaluateChunk("fn f(a:& mut &i32) {}");
