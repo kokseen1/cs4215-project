@@ -15,7 +15,7 @@ statement:
 	| expressionStmt
 	| block;
 
-letDecl: 'let' ('mut')? ID (':' type)? ('=' expression)? ';';
+letDecl: 'let' MUT? ID (':' type)? ('=' expression)? ';';
 
 assign: ID '=' expression ';';
 
@@ -30,7 +30,7 @@ type:
 	| 'bool'
 	| 'String'
 	| '&' type
-	| '&' 'mut' type
+	| '&' MUT type
 	| 'Box' '<' type '>'
 	| 'Rc' '<' type '>';
 
@@ -61,7 +61,7 @@ expression:
 	| expression op = ('&&' | '||') expression								# Logical
 	| ID '(' (argList)? ')'													# FunctionCall
 	| '&' expression														# Borrow
-	| '&' 'mut' expression													# MutableBorrow
+	| '&' MUT expression													# MutableBorrow
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp
@@ -72,6 +72,8 @@ expression:
 	| ID																	# Id;
 
 argList: expression (',' expression)*;
+
+MUT: 'mut';
 
 MUL: '*';
 DIV: '/';

@@ -1,5 +1,5 @@
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 function error(msg) {
@@ -143,7 +143,8 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitLetDecl(ctx: LetDeclContext) {
-        const type = ctx.type(); // optional
+        const type = ctx.type(); // optional, null if unspecified
+        const mut = ctx.MUT(); // optional, null if unspecified
         const expr = ctx.expression();
         const id = ctx.ID().getText();
         return {
