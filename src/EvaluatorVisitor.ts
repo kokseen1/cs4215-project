@@ -203,7 +203,6 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const mut = ctx.MUT();
         const bor = ctx.BOR();
         const type = ctx.type();
-        console.log(type)
 
         return {
             tag: "type",
