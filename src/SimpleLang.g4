@@ -25,11 +25,14 @@ paramList: param (',' param)*;
 param: ID ':' type;
 
 type:
-	PRIM
-	| BOR PRIM
-	| BOR MUT PRIM
-	| 'Box' '<' PRIM '>'
-	| 'Rc' '<' PRIM '>';
+	'i32' 
+	| 'f64'
+	| 'bool'
+	| 'String'
+	| BOR type
+	| BOR MUT type
+	| 'Box' '<' type '>'
+	| 'Rc' '<' type '>';
 
 structDef: 'struct' ID '{' structField (',' structField)* '}';
 structField: ID ':' type;
@@ -72,11 +75,6 @@ argList: expression (',' expression)*;
 
 BOR: '&';
 MUT: 'mut';
-PRIM:
-	'i32' 
-	| 'f64'
-	| 'bool'
-	| 'String';
 
 MUL: '*';
 DIV: '/';

@@ -199,18 +199,20 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitType(ctx: TypeContext) {
-        // TODO: support recursive types
         if (ctx === null) return { tag: "type", sym: "void" } // void return type
-        const prim = ctx.PRIM();
         const mut = ctx.MUT();
         const bor = ctx.BOR();
-        // TODO: support recursive reference types
-        if (prim === null) error("no primitive specified"); 
+        const type = ctx.type();
+        console.log(type)
+
         return {
             tag: "type",
             mut: mut !== null,
             bor: bor !== null,
-            sym: prim.getText()
+            // Recursively check until reaching a primitive
+            sym: (type !== null)
+                ? this.visit(type) // nested type
+                : ctx.getText() // primitive type
         }
     }
 
