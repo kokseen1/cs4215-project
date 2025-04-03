@@ -46,7 +46,7 @@ export class SimpleLangEvaluator {
             const result = this.vm.run(instrs);
 
             // Send the result to the REPL
-            console.log(`Result of expression: ${result}`);
+            console.log(`Result of expression: ${result.toString()}`);
         } catch (error) {
             // Handle errors and send them to the REPL
             if (error instanceof Error) {

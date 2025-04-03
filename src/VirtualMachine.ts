@@ -170,6 +170,7 @@ export class VirtualMachine {
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
             const instr = instrs[this.PC]
+            console.log("VM executing instr: " + instr.tag.toString())
             this.microcode[instr.tag](instr)
         }
         return this.OS.at(-1);

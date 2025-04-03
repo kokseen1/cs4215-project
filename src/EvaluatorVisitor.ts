@@ -1,5 +1,5 @@
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, BlockContext, BoolContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LogicalContext, MulDivContext, ParensContext, ProgContext, SimpleLangParser, StatementContext, UnaryOpContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, AssignContext, BlockContext, BoolContext, ExpressionContext, ExpressionStmtContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 function error(msg) {
@@ -92,6 +92,25 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             alt: alt ? this.visit(alt) : { tag: "seq", stmts: [] }
         }
     }
+
+    visitWhileStmt(ctx: WhileStmtContext) {
+        const pred = ctx.expression();
+        const body = ctx.block();
+        return {
+            tag: "while",
+            pred: this.visit(pred),
+            body: this.visit(body)
+        };
+    }
+
+    visitReturnStmt(ctx: ReturnStmtContext) {
+        const expr = ctx.expression();
+        return {
+            tag: "ret",
+            expr: this.visit(expr)
+        };
+    }
+
     visitParens(ctx: ParensContext) {
         return this.visit(ctx.expression());
     }
@@ -104,6 +123,27 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             tag: "blk",
             body: this.visitSeq(stmts)
         };
+    }
+
+    visitLetDecl(ctx: LetDeclContext) {
+        const type = ctx.type(); // optional
+        const expr = ctx.expression();
+        const id = ctx.ID().getText();
+        return {
+            tag:"let",
+            sym: id,
+            expr: this.visit(expr)
+        }
+    }
+
+    visitAssign(ctx: AssignContext) {
+        const expr = ctx.expression();
+        const id = ctx.ID().getText();
+        return {
+            tag: "assmt",
+            sym: id,
+            expr: this.visit(expr)
+        }
     }
 
     // Override the default result method from AbstractParseTreeVisitor
