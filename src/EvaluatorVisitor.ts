@@ -2,10 +2,6 @@ import { AbstractParseTreeVisitor } from 'antlr4ng';
 import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
-function error(msg) {
-    throw new Error(msg);
-}
-
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
 
     visitProg(ctx: ProgContext) {

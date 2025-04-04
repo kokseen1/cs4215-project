@@ -1,21 +1,5 @@
 import { SimpleLangParser } from './parser/src/SimpleLangParser';
 
-function is_number(x) {
-    return typeof x === 'number';
-}
-
-function is_string(x) {
-    return typeof x === 'string';
-}
-
-function is_boolean(x) {
-    return typeof x === 'boolean';
-}
-
-function error(msg) {
-    throw new Error(msg);
-}
-
 export class VirtualMachine {
     private OS: any[];
     private PC: number;
