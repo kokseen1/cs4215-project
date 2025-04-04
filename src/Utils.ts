@@ -1,28 +1,35 @@
-const error = msg => {
+export const error = msg => {
     throw new Error(msg)
 }
 
-const push = (array, ...items) => {
+export const push = (array, ...items) => {
     for (let item of items) {
         array.push(item)
     }
     return array
 }
 
-const display = (...msg) =>
+export const peek = (array, address) =>
+    array.slice(-1 - address)[0]
+
+export const display = (...msg) =>
     console.log(...msg)
 
-const is_number = (x) =>
+export const is_number = (x) =>
     typeof x === 'number'
 
-const is_string = x =>
+export const is_string = x =>
     typeof x === 'string'
 
-const is_boolean = x =>
+export const is_boolean = x =>
     typeof x === 'boolean'
 
-const is_undefined = (x) =>
+export const is_undefined = (x) =>
     x === undefined
 
-const is_null = (x) =>
+export const is_null = (x) =>
     x === null
+
+export const arity = (fun) => 
+    fun.length;
+    

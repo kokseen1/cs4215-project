@@ -1,4 +1,28 @@
+import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+
 export class Heap {
+    private builtins
+    private constants
+    constructor(heapsize_words, builtins, constants) {
+        this.heap_make(heapsize_words);
+        this.heap_size = heapsize_words
+        // initialize free list:
+        // every free node carries the address
+        // of the next free node as its first word
+        let i = 0
+        for (i = 0; i <= heapsize_words - this.node_size; i = i + this.node_size) {
+            this.heap_set(i, i + this.node_size)
+        }
+        // the empty free list is represented by -1
+        this.heap_set(i - this.node_size, -1)
+        this.free = 0
+        this.allocate_literal_values();
+
+        this.builtin_compile_frame = Object.keys(builtins)
+        this.constant_compile_frame = Object.keys(constants)
+        this.global_compile_environment =
+            [this.builtin_compile_frame, this.constant_compile_frame]
+    }
 
     // HEAP is an array of bytes (JS ArrayBuffer)
 
@@ -7,7 +31,7 @@ export class Heap {
     // heap_make allocates a heap of given size 
     // (in bytes) and returns a DataView of that, 
     // see https://www.javascripture.com/DataView
-    private heap_make = words => {
+    public heap_make = words => {
         const data = new ArrayBuffer(words * this.word_size)
         const view = new DataView(data)
         return view
@@ -145,7 +169,7 @@ export class Heap {
     private heap_get_child = (address, child_index) =>
         this.heap_get(address + 1 + child_index)
 
-    private heap_set_child = (address, child_index, value) =>
+    public heap_set_child = (address, child_index, value) =>
         this.heap_set(address + 1 + child_index, value)
 
     private heap_get_tag = address =>
@@ -231,25 +255,25 @@ export class Heap {
     // in the byte following the tag
 
     private False
-    private is_False = address =>
+    public is_False = address =>
         this.heap_get_tag(address) === this.False_tag
     private True
-    private is_True = address =>
+    public is_True = address =>
         this.heap_get_tag(address) === this.True_tag
 
-    private is_Boolean = address =>
+    public is_Boolean = address =>
         this.is_True(address) || this.is_False(address)
 
     private Null
-    private is_Null = address =>
+    public is_Null = address =>
         this.heap_get_tag(address) === this.Null_tag
 
-    private Unassigned
-    private is_Unassigned = address =>
+    public Unassigned
+    public is_Unassigned = address =>
         this.heap_get_tag(address) === this.Unassigned_tag
 
     private Undefined
-    private is_Undefined = address =>
+    public is_Undefined = address =>
         this.heap_get_tag(address) === this.Undefined_tag
 
     private allocate_literal_values = () => {
@@ -265,7 +289,7 @@ export class Heap {
     //  2 bytes #children, 1 byte unused]
     // Note: #children is 0
 
-    private is_Builtin = address =>
+    public is_Builtin = address =>
         this.heap_get_tag(address) === this.Builtin_tag
 
     private heap_allocate_Builtin = id => {
@@ -274,7 +298,7 @@ export class Heap {
         return address
     }
 
-    private heap_get_Builtin_id = address =>
+    public heap_get_Builtin_id = address =>
         this.heap_get_byte_at_offset(address, 1)
 
     // closure
@@ -284,7 +308,7 @@ export class Heap {
     // note: currently bytes at offset 4 and 7 are not used;
     //   they could be used to increase pc and #children range
 
-    private heap_allocate_Closure = (arity, pc, env) => {
+    public heap_allocate_Closure = (arity, pc, env) => {
         const address = this.heap_allocate(this.Closure_tag, 2)
         this.heap_set_byte_at_offset(address, 1, arity)
         this.heap_set_2_bytes_at_offset(address, 2, pc)
@@ -295,10 +319,10 @@ export class Heap {
     private heap_get_Closure_arity = address =>
         this.heap_get_byte_at_offset(address, 1)
 
-    private heap_get_Closure_pc = address =>
+    public heap_get_Closure_pc = address =>
         this.heap_get_2_bytes_at_offset(address, 2)
 
-    private heap_get_Closure_environment = address =>
+    public heap_get_Closure_environment = address =>
         this.heap_get_child(address, 0)
 
     private is_Closure = address =>
@@ -308,13 +332,13 @@ export class Heap {
     // [1 byte tag, 4 bytes unused, 
     //  2 bytes #children, 1 byte unused] 
 
-    private heap_allocate_Blockframe = env => {
+    public heap_allocate_Blockframe = env => {
         const address = this.heap_allocate(this.Blockframe_tag, 2)
         this.heap_set(address + 1, env)
         return address
     }
 
-    private heap_get_Blockframe_environment = address =>
+    public heap_get_Blockframe_environment = address =>
         this.heap_get_child(address, 0)
 
     private is_Blockframe = address =>
@@ -325,20 +349,20 @@ export class Heap {
     //  1 byte unused, 2 bytes #children, 1 byte unused] 
     // followed by the address of env
 
-    private heap_allocate_Callframe = (env, pc) => {
+    public heap_allocate_Callframe = (env, pc) => {
         const address = this.heap_allocate(this.Callframe_tag, 2)
         this.heap_set_2_bytes_at_offset(address, 2, pc)
         this.heap_set(address + 1, env)
         return address
     }
 
-    private heap_get_Callframe_environment = address =>
+    public heap_get_Callframe_environment = address =>
         this.heap_get_child(address, 0)
 
-    private heap_get_Callframe_pc = address =>
+    public heap_get_Callframe_pc = address =>
         this.heap_get_2_bytes_at_offset(address, 2)
 
-    private is_Callframe = address =>
+    public is_Callframe = address =>
         this.heap_get_tag(address) === this.Callframe_tag
 
     // environment frame
@@ -346,7 +370,7 @@ export class Heap {
     //  2 bytes #children, 1 byte unused] 
     // followed by the addresses of its values
 
-    private heap_allocate_Frame = number_of_values =>
+    public heap_allocate_Frame = number_of_values =>
         this.heap_allocate(this.Frame_tag, number_of_values + 1)
 
     private heap_Frame_display = address => {
@@ -367,13 +391,13 @@ export class Heap {
     //  2 bytes #children, 1 byte unused] 
     // followed by the addresses of its frames
 
-    private heap_allocate_Environment = number_of_frames =>
+    public heap_allocate_Environment = number_of_frames =>
         this.heap_allocate(this.Environment_tag, number_of_frames + 1)
 
     // access environment given by address 
     // using a "position", i.e. a pair of 
     // frame index and value index
-    private heap_get_Environment_value =
+    public heap_get_Environment_value =
         (env_address, position) => {
             const [frame_index, value_index] = position
             const frame_address =
@@ -382,7 +406,7 @@ export class Heap {
                 frame_address, value_index)
         }
 
-    private heap_set_Environment_value =
+    public heap_set_Environment_value =
         (env_address, position, value) => {
             const [frame_index, value_index] = position
             const frame_address =
@@ -398,7 +422,7 @@ export class Heap {
     // environment to the new environment.
     // enter the address of the new frame to end 
     // of the new environment
-    private heap_Environment_extend =
+    public heap_Environment_extend =
         (frame_address, env_address) => {
             const old_size =
                 this.heap_get_size(env_address)
@@ -460,7 +484,7 @@ export class Heap {
     // conversions between addresses and JS_value
     //
 
-    private address_to_JS_value = x =>
+    public address_to_JS_value = x =>
         this.is_Boolean(x)
             ? (this.is_True(x) ? true : false)
             : this.is_Number(x)
@@ -482,7 +506,7 @@ export class Heap {
                                     ? "<builtin>"
                                     : "unknown word tag: " + this.word_to_string(x)
 
-    private JS_value_to_address = x =>
+    public JS_value_to_address = x =>
         is_boolean(x)
             ? (x ? this.True : this.False)
             : is_number(x)
@@ -521,64 +545,38 @@ export class Heap {
         return -1;
     }
 
-    // in this machine, the builtins take their
-    // arguments directly from the operand stack,
-    // to save the creation of an intermediate 
-    // argument array
-    // private builtin_implementation = {
-    //     display       : () => {
-    //                         const address = OS.pop()
-    //                         display(address_to_JS_value(address))
-    //                         return address
-    //                     },
-    //     error         : () => error(address_to_JS_value(OS.pop())),
-    //     pair          : () => {
-    //                         const tl = OS.pop()
-    //                         const hd = OS.pop()
-    //                         return heap_allocate_Pair(hd, tl)
-    //                     },
-    //     is_pair       : () => is_Pair(OS.pop()) ? True : False,
-    //     head          : () => heap_get_child(OS.pop(), 0),
-    //     tail          : () => heap_get_child(OS.pop(), 1),
-    //     is_null       : () => is_Null(OS.pop()) ? True : False,
-    //     set_head      : () => {
-    //                         const val = OS.pop()
-    //                         const p = OS.pop()
-    //                         heap_set_child(p, 0, val)
-    //                     },
-    //     set_tail      : () => {
-    //                         const val = OS.pop()
-    //                         const p = OS.pop()
-    //                         heap_set_child(p, 1, val)
-    //                     }
-    // }
+    public allocate_builtin_frame = () => {
+        const builtin_values = Object.values(this.builtins)
+        const frame_address =
+            this.heap_allocate_Frame(builtin_values.length)
+        for (let i = 0; i < builtin_values.length; i++) {
+            const builtin: any = builtin_values[i];
+            this.heap_set_child(
+                frame_address,
+                i,
+                this.heap_allocate_Builtin(builtin.id))
+        }
+        return frame_address
+    }
 
-    private builtins = {}
-    // const builtin_array = []
-    // {
-    //     let i = 0
-    //     for (const key in builtin_implementation) {
-    //         builtins[key] = 
-    //             { tag:   'BUILTIN', 
-    //               id:    i,
-    //               arity: arity(builtin_implementation[key])
-    //             }
-    //         builtin_array[i++] = builtin_implementation[key]
-    //     }
-    // }
+    public allocate_constant_frame = () => {
+        const constant_values = Object.values(this.constants)
+        const frame_address =
+            this.heap_allocate_Frame(constant_values.length)
+        for (let i = 0; i < constant_values.length; i++) {
+            const constant_value = constant_values[i];
+            if (typeof constant_value === "undefined") {
+                this.heap_set_child(frame_address, i, this.Undefined)
+            } else {
+                this.heap_set_child(
+                    frame_address,
+                    i,
+                    this.heap_allocate_Number(constant_value))
+            }
+        }
+        return frame_address
+    }
 
-    private constants = {}
-    // const constants = {
-    //     undefined     : Undefined,
-    //     math_E        : math_E,
-    //     math_LN10     : math_LN10,
-    //     math_LN2      : math_LN2,
-    //     math_LOG10E   : math_LOG10E,
-    //     math_LOG2E    : math_LOG2E,
-    //     math_PI       : math_PI,
-    //     math_SQRT1_2  : math_SQRT1_2,
-    //     math_SQRT2    : math_SQRT2 
-    // }
 
     private compile_time_environment_extend = (vs, e) => {
         //  make shallow copy of e
@@ -586,10 +584,8 @@ export class Heap {
     }
 
     // compile-time frames only need synbols (keys), no values
-    private builtin_compile_frame = Object.keys(this.builtins)
-    private constant_compile_frame = Object.keys(this.constants)
-    private global_compile_environment =
-        [this.builtin_compile_frame, this.constant_compile_frame]
-
+    private builtin_compile_frame
+    private constant_compile_frame
+    private global_compile_environment
 
 }
