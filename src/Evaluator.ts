@@ -37,7 +37,10 @@ export class SimpleLangEvaluator {
 
             // Compile the program
             const instrs = this.compiler.compile_program(prog);
-            console.log(instrs);
+            instrs.map((e,i) => {
+                process.stdout.write(i + ": ")
+                console.dir(e , {depth:null});
+            })
 
             // Instantiate the VM
             this.vm = new VirtualMachine();
