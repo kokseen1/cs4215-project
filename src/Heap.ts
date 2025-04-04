@@ -4,7 +4,8 @@ export class Heap {
     private builtins
     private constants
     constructor(heapsize_words, builtins, constants) {
-        this.heap_make(heapsize_words);
+        this.HEAP = this.heap_make(heapsize_words);
+
         this.heap_size = heapsize_words
         // initialize free list:
         // every free node carries the address

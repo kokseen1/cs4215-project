@@ -194,8 +194,8 @@ export class VirtualMachine {
         this.initialize_machine(2000);
         //print_code(instrs)
         while (!(instrs[this.PC].tag === 'DONE')) {
-            //display("next instruction: ")
-            //print_code([instrs[PC]]) 
+            display("next instruction: ")
+            console.log([instrs[this.PC]]) 
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
@@ -203,7 +203,7 @@ export class VirtualMachine {
             console.log("VM executing instr: " + instr.tag.toString())
             this.microcode[instr.tag](instr)
         }
-        return this.OS.at(-1);
+        return peek(this.OS,0)
     }
 }
 
