@@ -18,46 +18,46 @@ export class SimpleLangEvaluator {
 
     async evaluateChunk(chunk: string): Promise<void> {
         this.executionCount++;
-        try {
-            // Create the lexer and parser
-            const inputStream = CharStream.fromString(chunk);
-            const lexer = new SimpleLangLexer(inputStream);
-            const tokenStream = new CommonTokenStream(lexer);
-            const parser = new SimpleLangParser(tokenStream);
+        // try {
+        // Create the lexer and parser
+        const inputStream = CharStream.fromString(chunk);
+        const lexer = new SimpleLangLexer(inputStream);
+        const tokenStream = new CommonTokenStream(lexer);
+        const parser = new SimpleLangParser(tokenStream);
 
-            // Parse the input
-            const tree = parser.prog();
+        // Parse the input
+        const tree = parser.prog();
 
-            // Convert the parsed tree into a json-like format
-            const prog = this.visitor.visit(tree);
-            console.log(JSON.stringify(prog));
+        // Convert the parsed tree into a json-like format
+        const prog = this.visitor.visit(tree);
+        console.log(JSON.stringify(prog));
 
-            // Instantiate the VM
-            this.vm = new VirtualMachine();
+        // Instantiate the VM
+        this.vm = new VirtualMachine();
 
-            // Instantiate the compiler
-            this.compiler =
-                new Compiler(this.vm.get_builtins(), this.vm.get_constants());
+        // Instantiate the compiler
+        this.compiler =
+            new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
-            // Compile the program
-            const instrs = this.compiler.compile_program(prog);
-            instrs.map((e,i) => {
-                process.stdout.write(i + ": ")
-                console.dir(e , {depth:null});
-            })
+        // Compile the program
+        const instrs = this.compiler.compile_program(prog);
+        instrs.map((e, i) => {
+            process.stdout.write(i + ": ")
+            console.dir(e, { depth: null });
+        })
 
-            // Evaluate the instructions
-            const result = this.vm.run(instrs);
+        // Evaluate the instructions
+        const result = this.vm.run(instrs);
 
-            // Send the result to the REPL
-            console.log(`Result of expression: ${result}`);
-        } catch (error) {
-            // Handle errors and send them to the REPL
-            if (error instanceof Error) {
-                console.log(`Error: ${error.message}`);
-            } else {
-                console.log(`Error: ${String(error)}`);
-            }
-        }
+        // Send the result to the REPL
+        console.log(`Result of expression: ${result}`);
+        // } catch (error) {
+        //     // Handle errors and send them to the REPL
+        //     if (error instanceof Error) {
+        //         console.log(`Error: ${error.message}`);
+        //     } else {
+        //         console.log(`Error: ${String(error)}`);
+        //     }
+        // }
     }
 }
