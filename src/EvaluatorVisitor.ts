@@ -172,7 +172,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const block = ctx.block();
 
         return {
-            tag: "fun",
+            tag: "fn",
             sym: id,
             prms: this.visitParamList(params),
             body: this.visit(block),
