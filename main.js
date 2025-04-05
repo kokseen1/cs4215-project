@@ -1,5 +1,7 @@
 import { SimpleLangEvaluator } from './dist/Evaluator.js';
+import { readFileSync } from 'fs';
 
 var evaluator = new SimpleLangEvaluator();
 
-evaluator.evaluateChunk("fn f(a:& mut &i32) {}");
+const prog = readFileSync('./main.rs', 'utf-8');
+evaluator.evaluateChunk(prog);
