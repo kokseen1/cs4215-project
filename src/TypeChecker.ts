@@ -20,7 +20,7 @@ export class TypeChecker {
     // type-time frames, and a type-time frame 
     // is an array of symbols
 
-    private type_time_environment_extend = (vs, e) => {
+    private type_environment_extend = (vs, e) => {
         //  make shallow copy of e
         return push([...e], vs)
     }
@@ -91,7 +91,7 @@ export class TypeChecker {
             (comp, ce) => {
                 // extend type-time environment
                 this.type(comp.body,
-                    this.type_time_environment_extend(
+                    this.type_environment_extend(
                         comp.prms, ce))
             },
         seq:
@@ -101,7 +101,7 @@ export class TypeChecker {
                 const locals = this.scan(comp.body)
                 this.type(comp.body,
                     // extend type-time environment
-                    this.type_time_environment_extend(
+                    this.type_environment_extend(
                         locals, ce))
             },
         let:
