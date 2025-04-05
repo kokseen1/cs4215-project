@@ -1,6 +1,6 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
@@ -162,14 +162,14 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitFuncDef(ctx: FuncDefContext) {
-        const id = ctx.ID().getText();
+        const id = ctx.ID();
         const params = ctx.paramList();
         const retType = ctx.type();
         const block = ctx.block();
 
         return {
             tag: "fun",
-            sym: id,
+            sym: id.getText(),
             prms: this.visitParamList(params),
             body: this.visit(block),
             retType: this.visitType(retType),
@@ -182,6 +182,14 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         return params.length === 0
             ? error("error: empty params list") // should not happen here
             : params.map(p => this.visit(p));
+    }
+
+    visitArgList(ctx: ArgListContext) {
+        if (ctx === null) return []; // no args
+        const args = ctx.expression();
+        return args.length === 0
+            ? error("error: empty args list") // should not happen here
+            : args.map(a => this.visit(a));
     }
 
     visitParam(ctx: ParamContext) {
@@ -208,6 +216,17 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             sym: (type !== null)
                 ? this.visit(type) // nested type
                 : ctx.getText() // primitive type
+        }
+    }
+
+    visitFunctionCall(ctx: FunctionCallContext) {
+        const id = ctx.ID();
+        const argList = ctx.argList();
+
+        return {
+            tag: "app",
+            fun: {tag: "nam", sym: id.getText()},
+            args: this.visit(argList)
         }
     }
 
