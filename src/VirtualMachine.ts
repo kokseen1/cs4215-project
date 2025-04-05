@@ -174,7 +174,7 @@ export class VirtualMachine {
     }
 
     private apply_builtin = builtin_id => {
-        display(builtin_id, "apply_builtin: builtin_id:")
+        // display(builtin_id, "apply_builtin: builtin_id:")
         const result = this.builtin_array[builtin_id]()
         this.OS.pop() // pop fun
         push(this.OS, result)
