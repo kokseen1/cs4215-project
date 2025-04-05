@@ -141,6 +141,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitLetDecl(ctx: LetDeclContext) {
+        console.log("let")
         const type = ctx.type(); // optional, null if unspecified
         const mut = ctx.MUT(); // optional, null if unspecified
         const expr = ctx.expression();
@@ -148,6 +149,8 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         return {
             tag: "let",
             sym: id,
+            mut: mut !== null,
+            type: this.visitType(type), // will be type: void if unspecified
             expr: this.visit(expr)
         }
     }
