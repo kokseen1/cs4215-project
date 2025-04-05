@@ -37,7 +37,10 @@ export class Compiler {
 
     private value_index = (frame, x) => {
         for (let i = 0; i < frame.length; i++) {
-            if (frame[i] === x) return i
+            if (typeof frame[i] === 'string' && frame[i] === x)
+                return i;
+            else if (typeof frame[i] === 'object' && frame[i].id === x)
+                return i;
         }
         return -1;
     }
