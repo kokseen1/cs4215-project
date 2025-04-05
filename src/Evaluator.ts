@@ -4,10 +4,12 @@ import { SimpleLangParser } from './parser/src/SimpleLangParser';
 import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
 import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
+import { TypeChecker } from './TypeChecker';
 
 export class SimpleLangEvaluator {
     private executionCount: number;
     public visitor: SimpleLangEvaluatorVisitor;
+    public typeChecker: TypeChecker;
     public compiler: Compiler;
     public vm: VirtualMachine;
 
@@ -35,9 +37,15 @@ export class SimpleLangEvaluator {
         // Instantiate the VM
         this.vm = new VirtualMachine();
 
+        // Instantiate the TypeChecker
+        this.typeChecker = new TypeChecker(this.vm.get_builtins(), this.vm.get_constants());
+
         // Instantiate the compiler
         this.compiler =
             new Compiler(this.vm.get_builtins(), this.vm.get_constants());
+
+        // Type check the program
+        this.typeChecker.type_program(prog);
 
         // Compile the program
         const instrs = this.compiler.compile_program(prog);
