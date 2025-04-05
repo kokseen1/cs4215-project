@@ -25,7 +25,7 @@ paramList: param (',' param)*;
 param: ID ':' type;
 
 type:
-	'i32' 
+	'i32'
 	| 'f64'
 	| 'bool'
 	| 'String'
@@ -94,3 +94,6 @@ INT: [0-9]+;
 STRING: '"' .*? '"';
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 WS: [ \t\r\n]+ -> skip;
+
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
+BLOCK_COMMENT: '/*' .*? '*/' -> skip;
