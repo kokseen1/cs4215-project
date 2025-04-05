@@ -1,8 +1,8 @@
-import { push, error} from './Utils';
+import { push, error, scan_for_locals } from './Utils';
 
 export class TypeChecker {
     private global_type_environment
-    
+
     private type_dict = {} // fake env, need to change to real env for scoping!!
 
     constructor(builtins, constants) {
@@ -98,7 +98,7 @@ export class TypeChecker {
             (comp, ce) => this.type_sequence(comp.stmts, ce),
         blk:
             (comp, ce) => {
-                const locals = this.scan(comp.body)
+                const locals = scan_for_locals(comp.body)
                 this.type(comp.body,
                     // extend type-time environment
                     this.type_environment_extend(
@@ -139,15 +139,6 @@ export class TypeChecker {
             this.type(comp, ce)
         }
     }
-
-
-    private scan = comp =>
-        comp.tag === 'seq'
-            ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
-                [])
-            : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp.sym]
-                : []
 
     // type component into instruction array instrs,
     // starting at wc (write counter)
