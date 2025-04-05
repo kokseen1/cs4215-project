@@ -129,7 +129,6 @@ export class Heap {
     private free
 
     private heap_allocate = (tag, size) => {
-        console.log("allocating " + tag + " of size " + size)
         // if (size > this.node_size) {
         //     error("limitation: nodes cannot be larger than 10 words")
         // }
@@ -473,10 +472,8 @@ export class Heap {
     // note: #children is 0
 
     private heap_allocate_Number = n => {
-        console.log("allocating num " + n)
         const number_address = this.heap_allocate(this.Number_tag, 2)
         this.heap_set(number_address + 1, n)
-        console.log("at addr " + number_address)
         return number_address
     }
 

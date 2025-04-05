@@ -36,17 +36,12 @@ export class VirtualMachine {
                 this.PC = instr.addr,
         ENTER_SCOPE:
             instr => {
-                console.log("1")
                 push(this.RTS, this.heap.heap_allocate_Blockframe(this.E))
-                console.log("2")
                 const frame_address = this.heap.heap_allocate_Frame(instr.num)
-                console.log("3")
                 this.E = this.heap.heap_Environment_extend(frame_address, this.E)
-                console.log("4")
                 for (let i = 0; i < instr.num; i++) {
                     this.heap.heap_set_child(frame_address, i, this.heap.Unassigned)
                 }
-                console.log("5")
             },
         EXIT_SCOPE:
             instr =>
@@ -205,7 +200,6 @@ export class VirtualMachine {
         this.initialize_machine(2000000);
         //print_code(instrs)
         while (!(instrs[this.PC].tag === 'DONE')) {
-            console.log("OS: " + this.OS);
             display("next instruction: ")
             console.log([instrs[this.PC]]) 
             //display(PC, "PC: ")
@@ -214,7 +208,7 @@ export class VirtualMachine {
             const instr = instrs[this.PC++]
             console.log("VM executing instr: " + instr.tag.toString())
             this.microcode[instr.tag](instr)
-            // console.log("OS: " + this.OS);
+            console.log("OS: ");
             this.OS.map((e, i) => {
                 console.log(i + ": " + e)
             })

@@ -31,7 +31,6 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     // Literals
     visitInt(ctx: IntContext) {
         const val = parseInt(ctx.getText())
-        console.log("visit int " + val)
         return { tag: "lit", val: val }
     }
 
@@ -82,7 +81,6 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
 
     visitIfStmt(ctx: IfStmtContext) {
         const pred = ctx.expression();
-        console.log(pred)
         const cons = ctx.block(0);
         const alt = ctx.block(1);
 
@@ -132,7 +130,6 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     visitBlock(ctx: BlockContext) {
         // TODO: check if blk is needed here
         // blk required only if there are declarations (env needs to be extended)?
-        console.log("block")
         const stmts = ctx.statement();
         return {
             tag: "blk",
@@ -141,7 +138,6 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitLetDecl(ctx: LetDeclContext) {
-        console.log("let")
         const type = ctx.type(); // optional, null if unspecified
         const mut = ctx.MUT(); // optional, null if unspecified
         const expr = ctx.expression();
