@@ -374,15 +374,16 @@ export class Heap {
         this.heap_allocate(this.Frame_tag, number_of_values + 1)
 
     private heap_Frame_display = address => {
-        display("", "Frame:")
+        // display("", "Frame:")
         const size = this.heap_get_number_of_children(address)
         display(size, "frame size:")
         for (let i = 0; i < size; i++) {
+            console.log("---------")
             display(i, "value address:")
             const value =
                 this.heap_get_child(address, i)
-            display(value, "value:")
-            display(this.word_to_string(value), "value word:")
+            display(this.address_to_JS_value(value), "deref value:")
+            // display(this.word_to_string(value), "value word:")
         }
     }
 
@@ -439,17 +440,18 @@ export class Heap {
         }
 
     // for debuggging: display environment
-    // private heap_Environment_display = env_address => {
-    //         const size = heap_get_number_of_children(
-    //                          env_address)
-    //         display("", "Environment:")
-    //         display(size, "environment size:")
-    //         for (let i = 0; i < size; i++) {
-    //             display(i, "frame index:")
-    //             const frame = heap_get_child(env_address, i)
-    //             heap_Frame_display(frame)
-    //         }
-    //     }
+    public heap_Environment_display = env_address => {
+            const size = this.heap_get_number_of_children(
+                             env_address)
+            // display("", "Environment:")
+            display(size, "environment size:")
+            for (let i = 0; i < size; i++) {
+                console.log("==========")
+                display(i, "frame index:")
+                const frame = this.heap_get_child(env_address, i)
+                this.heap_Frame_display(frame)
+            }
+        }
 
     // pair
     // [1 byte tag, 4 bytes unused, 

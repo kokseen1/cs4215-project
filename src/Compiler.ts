@@ -134,6 +134,27 @@ export class Compiler {
                         ce, comp.sym)
                 }
             },
+        let:
+            (comp, ce) => {
+                console.log("let: ")
+                console.log(comp)
+                this.compile(comp.expr, ce)
+                this.instrs[this.wc++] = {
+                    tag: 'ASSIGN',
+                    to: comp.sym,
+                    pos: this.compile_time_environment_position(
+                        ce, comp.sym)
+                }
+            },
+        const:
+            (comp, ce) => {
+                this.compile(comp.expr, ce)
+                this.instrs[this.wc++] = {
+                    tag: 'ASSIGN',
+                    pos: this.compile_time_environment_position(
+                        ce, comp.sym)
+                }
+            },
         lam:
             (comp, ce) => {
                 this.instrs[this.wc++] = {
@@ -162,25 +183,8 @@ export class Compiler {
                     // extend compile-time environment
                     this.compile_time_environment_extend(
                         locals, ce))
+                        console.log("locals: " + locals)
                 this.instrs[this.wc++] = { tag: 'EXIT_SCOPE' }
-            },
-        let:
-            (comp, ce) => {
-                this.compile(comp.expr, ce)
-                this.instrs[this.wc++] = {
-                    tag: 'ASSIGN',
-                    pos: this.compile_time_environment_position(
-                        ce, comp.sym)
-                }
-            },
-        const:
-            (comp, ce) => {
-                this.compile(comp.expr, ce)
-                this.instrs[this.wc++] = {
-                    tag: 'ASSIGN',
-                    pos: this.compile_time_environment_position(
-                        ce, comp.sym)
-                }
             },
         ret:
             (comp, ce) => {

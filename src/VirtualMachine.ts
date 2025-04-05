@@ -200,18 +200,20 @@ export class VirtualMachine {
         this.initialize_machine(2000000);
         //print_code(instrs)
         while (!(instrs[this.PC].tag === 'DONE')) {
-            display("next instruction: ")
-            console.log([instrs[this.PC]]) 
+            // display("next instruction: ")
+            // console.log([instrs[this.PC]]) 
+            process.stdout.write("PC: "+ this.PC + ": ")
+            console.log(instrs[this.PC])
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
             const instr = instrs[this.PC++]
-            console.log("VM executing instr: " + instr.tag.toString())
             this.microcode[instr.tag](instr)
-            console.log("OS: ");
-            this.OS.map((e, i) => {
-                console.log(i + ": " + e)
-            })
+            // console.log("OS: ");
+            // this.OS.map((e, i) => {
+            //     console.log(i + ": " + e)
+            // })
+            // this.heap.heap_Environment_display(this.E)
         }
         const ret = this.heap.address_to_JS_value(peek(this.OS, 0));
         return ret
