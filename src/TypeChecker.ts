@@ -1,4 +1,4 @@
-import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { error, display, is_boolean, is_null, is_number, is_string, is_undefined, head, tail, pair } from './Utils';
 
 export class TypeChecker {
     // Typed Source abuses multiplications
@@ -133,9 +133,9 @@ export class TypeChecker {
                     cons: comp.scnd,
                     alt: {tag: 'lit', val: false}}
                     : {tag: 'cond_expr',  
-                    pred: cmd.frst,
+                    pred: comp.frst,
                     cons: {tag: 'lit', val: true}, 
-                    alt: cmd.scnd}),
+                    alt: comp.scnd}),
     cond_expr: 
         comp => ({tag: 'cond_expr', 
                 pred: this.annotate(comp.pred), 
@@ -150,7 +150,7 @@ export class TypeChecker {
         comp => ({tag: 'app',
                 fun: this.annotate(comp.fun),
                 args: comp.args.map(this.annotate)}),
-    seq: 
+    seq:
         comp => ({tag: 'seq',
                 stmts: this.annotate_sequence(comp.stmts)}),
     blk:
@@ -175,7 +175,7 @@ export class TypeChecker {
     // parse, turn into json (using ast_to_json), 
     // wrap in a block, and annotate
     private parse_to_json = program_text => {
-        const json = this.ast_to_json(parse(program_text))
+        const json = ast_to_json(parse(program_text))
         return this.annotate(json.tag === "blk"
                         ? json
                         : json.tag === "seq"
@@ -235,7 +235,7 @@ export class TypeChecker {
     // is a type environment.
     private empty_type_environment = null
     private global_type_environment = 
-        pair(global_type_frame, empty_type_environment)
+        pair(this.global_type_frame, this.empty_type_environment)
 
     private lookup_type = (x, e) =>
         is_null(e)
@@ -390,7 +390,7 @@ export class TypeChecker {
             
             const component_types = []
             for (const s of comp.stmts) {
-                const _t = type(s, te);
+                const _t = this.type(s, te);
                 component_types.push(_t)
                 
                 // ignore junk stmts after ret
@@ -434,7 +434,7 @@ export class TypeChecker {
     private test = (program, expected_type_or_error) => {
         let t
         try {
-            t = this.unparse_type(type(parse_to_json(program),
+            t = this.unparse_type(this.type(this.parse_to_json(program),
             this.global_type_environment))
         } catch(x) {
             t = x + ""

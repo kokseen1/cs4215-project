@@ -31,5 +31,17 @@ export const is_null = (x) =>
     x === null
 
 export const arity = (fun) => 
-    fun.length;
-    
+    fun.length
+
+export const head = (z) => 
+    z(0)
+
+export const tail = (z) => 
+    z(1)
+
+export const pair = (x, y) => (m) =>
+    m === 0
+        ? x
+        : m === 1
+        ? y
+        : (() => { throw new Error(`argument not 0 or 1 -- pair: ${m}`); })();
