@@ -1,4 +1,4 @@
-import { scan_for_locals, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
 import { SimpleLangParser } from "./parser/src/SimpleLangParser";
 
 export class Compiler {
@@ -153,7 +153,7 @@ export class Compiler {
             (comp, ce) => this.compile_sequence(comp.stmts, ce),
         blk:
             (comp, ce) => {
-                const locals = scan_for_locals(comp.body)
+                const locals = this.scan(comp.body)
                 this.instrs[this.wc++] = { tag: 'ENTER_SCOPE', num: locals.length }
                 this.compile(comp.body,
                     // extend compile-time environment
@@ -215,6 +215,15 @@ export class Compiler {
             this.compile(comp, ce)
         }
     }
+
+
+    private scan = comp =>
+        comp.tag === 'seq'
+            ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
+                [])
+            : ['let', 'const', 'fun'].includes(comp.tag)
+                ? [comp.sym]
+                : []
 
     // compile component into instruction array instrs,
     // starting at wc (write counter)

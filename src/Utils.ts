@@ -30,32 +30,18 @@ export const is_undefined = (x) =>
 export const is_null = (x) =>
     x === null
 
-export const arity = (fun) =>
+export const arity = (fun) => 
     fun.length
 
-export const head = (z) =>
+export const head = (z) => 
     z(0)
 
-export const tail = (z) =>
+export const tail = (z) => 
     z(1)
 
 export const pair = (x, y) => (m) =>
     m === 0
         ? x
         : m === 1
-            ? y
-            : (() => { throw new Error(`argument not 0 or 1 -- pair: ${m}`); })();
-
-// scanning out the declarations from (possibly nested)
-// sequences of statements, ignoring blocks
-export const scan_for_locals = comp =>
-    comp === null // possible null
-        ? []
-        : comp.tag === 'seq' // cannot rely on JS arbitrary undefined object fields
-            ? comp.stmts.reduce((acc, x) =>
-                acc.concat(scan_for_locals(x)),
-                [])
-            : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp.sym]
-                : []
-
+        ? y
+        : (() => { throw new Error(`argument not 0 or 1 -- pair: ${m}`); })();
