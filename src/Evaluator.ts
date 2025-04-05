@@ -32,8 +32,12 @@ export class SimpleLangEvaluator {
             const prog = this.visitor.visit(tree);
             console.log(JSON.stringify(prog));
 
+            // Instantiate the VM
+            this.vm = new VirtualMachine();
+
             // Instantiate the compiler
-            this.compiler = new Compiler();
+            this.compiler =
+                new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
             // Compile the program
             const instrs = this.compiler.compile_program(prog);
@@ -42,14 +46,11 @@ export class SimpleLangEvaluator {
                 console.dir(e , {depth:null});
             })
 
-            // Instantiate the VM
-            this.vm = new VirtualMachine();
-
             // Evaluate the instructions
             const result = this.vm.run(instrs);
 
             // Send the result to the REPL
-            console.log(`Result of expression: ${result.toString()}`);
+            console.log(`Result of expression: ${result}`);
         } catch (error) {
             // Handle errors and send them to the REPL
             if (error instanceof Error) {

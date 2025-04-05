@@ -11,6 +11,8 @@ import { VirtualMachine } from "./VirtualMachine";
 export class SimpleLangEvaluator extends BasicEvaluator {
     private executionCount: number;
     private visitor: SimpleLangEvaluatorVisitor;
+    public compiler: Compiler;
+    public vm: VirtualMachine;
 
     constructor(conductor: IRunnerPlugin) {
         super(conductor);
@@ -33,7 +35,18 @@ export class SimpleLangEvaluator extends BasicEvaluator {
             // Evaluate the parsed tree
             const prog = this.visitor.visit(tree);
 
-            const result = new VirtualMachine().run(new Compiler().compile_program(prog));
+            // Instantiate the VM
+            this.vm = new VirtualMachine();
+
+            // Instantiate the compiler
+            this.compiler =
+                new Compiler(this.vm.get_builtins(), this.vm.get_constants());
+
+            // Compile the program
+            const instrs = this.compiler.compile_program(prog);
+
+            // Evaluate the instructions
+            const result = this.vm.run(instrs);
 
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result.toString()}`);

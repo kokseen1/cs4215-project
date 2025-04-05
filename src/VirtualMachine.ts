@@ -10,6 +10,7 @@ export class VirtualMachine {
     private heap: Heap;
 
     constructor() {
+        this.init_builtins()
     }
 
 
@@ -35,12 +36,17 @@ export class VirtualMachine {
                 this.PC = instr.addr,
         ENTER_SCOPE:
             instr => {
+                console.log("1")
                 push(this.RTS, this.heap.heap_allocate_Blockframe(this.E))
+                console.log("2")
                 const frame_address = this.heap.heap_allocate_Frame(instr.num)
+                console.log("3")
                 this.E = this.heap.heap_Environment_extend(frame_address, this.E)
+                console.log("4")
                 for (let i = 0; i < instr.num; i++) {
                     this.heap.heap_set_child(frame_address, i, this.heap.Unassigned)
                 }
+                console.log("5")
             },
         EXIT_SCOPE:
             instr =>
@@ -151,6 +157,12 @@ export class VirtualMachine {
         },
     }
 
+    public get_builtins = () =>
+        this.builtins;
+
+    public get_constants = () =>
+        this.constants;
+
     private builtins = {}
     private builtin_array = []
     private init_builtins = () => {
@@ -177,7 +189,6 @@ export class VirtualMachine {
         this.OS = [];
         this.PC = 0;
         this.RTS = [];
-        this.init_builtins()
         this.heap = new Heap(heapsize_words, this.builtins, this.constants);
         const builtins_frame = this.heap.allocate_builtin_frame()
         const constants_frame = this.heap.allocate_constant_frame()
@@ -191,19 +202,25 @@ export class VirtualMachine {
 
 
     public run(instrs) {
-        this.initialize_machine(2000);
+        this.initialize_machine(2000000);
         //print_code(instrs)
         while (!(instrs[this.PC].tag === 'DONE')) {
+            console.log("OS: " + this.OS);
             display("next instruction: ")
             console.log([instrs[this.PC]]) 
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
-            const instr = instrs[this.PC]
+            const instr = instrs[this.PC++]
             console.log("VM executing instr: " + instr.tag.toString())
             this.microcode[instr.tag](instr)
+            // console.log("OS: " + this.OS);
+            this.OS.map((e, i) => {
+                console.log(i + ": " + e)
+            })
         }
-        return peek(this.OS,0)
+        const ret = this.heap.address_to_JS_value(peek(this.OS, 0));
+        return ret
     }
 }
 

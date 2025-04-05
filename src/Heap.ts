@@ -4,9 +4,12 @@ export class Heap {
     private builtins
     private constants
     constructor(heapsize_words, builtins, constants) {
+        this.builtins = builtins;
+        this.constants = constants;
+        this.heap_size = heapsize_words
+        this.free = 0
         this.HEAP = this.heap_make(heapsize_words);
 
-        this.heap_size = heapsize_words
         // initialize free list:
         // every free node carries the address
         // of the next free node as its first word
@@ -16,13 +19,8 @@ export class Heap {
         }
         // the empty free list is represented by -1
         this.heap_set(i - this.node_size, -1)
-        this.free = 0
         this.allocate_literal_values();
 
-        this.builtin_compile_frame = Object.keys(builtins)
-        this.constant_compile_frame = Object.keys(constants)
-        this.global_compile_environment =
-            [this.builtin_compile_frame, this.constant_compile_frame]
     }
 
     // HEAP is an array of bytes (JS ArrayBuffer)
@@ -126,21 +124,23 @@ export class Heap {
     // Note: payload depends on the type of node
     private size_offset = 5
 
-    private node_size = 10
+    private node_size = 1000
 
     private free
 
     private heap_allocate = (tag, size) => {
-        if (size > this.node_size) {
-            error("limitation: nodes cannot be larger than 10 words")
-        }
+        console.log("allocating " + tag + " of size " + size)
+        // if (size > this.node_size) {
+        //     error("limitation: nodes cannot be larger than 10 words")
+        // }
         // a value of -1 in free indicates the
         // end of the free list
         // if (free === -1) {
         //     mark_sweep()
         // }
         const address = this.free
-        this.free = this.heap_get(this.free)
+        // this.free = this.heap_get(this.free)
+        this.free += size
         this.HEAP.setInt8(address * this.word_size, tag)
         this.HEAP.setUint16(address * this.word_size +
             this.size_offset,
@@ -473,8 +473,10 @@ export class Heap {
     // note: #children is 0
 
     private heap_allocate_Number = n => {
+        console.log("allocating num " + n)
         const number_address = this.heap_allocate(this.Number_tag, 2)
         this.heap_set(number_address + 1, n)
+        console.log("at addr " + number_address)
         return number_address
     }
 
@@ -522,29 +524,6 @@ export class Heap {
                         //     this.JS_value_to_address(tail(x)))
                         : "unknown word tag: " + this.word_to_string(x)
 
-    // ************************
-    // compile-time environment
-    // ************************/
-
-    // a compile-time environment is an array of 
-    // compile-time frames, and a compile-time frame 
-    // is an array of symbols
-
-    // find the position [frame-index, value-index] 
-    // of a given symbol x
-    private compile_time_environment_position = (env, x) => {
-        let frame_index = env.length
-        while (this.value_index(env[--frame_index], x) === -1) { }
-        return [frame_index,
-            this.value_index(env[frame_index], x)]
-    }
-
-    private value_index = (frame, x) => {
-        for (let i = 0; i < frame.length; i++) {
-            if (frame[i] === x) return i
-        }
-        return -1;
-    }
 
     public allocate_builtin_frame = () => {
         const builtin_values = Object.values(this.builtins)
@@ -579,10 +558,6 @@ export class Heap {
     }
 
 
-    private compile_time_environment_extend = (vs, e) => {
-        //  make shallow copy of e
-        return push([...e], vs)
-    }
 
     // compile-time frames only need synbols (keys), no values
     private builtin_compile_frame
