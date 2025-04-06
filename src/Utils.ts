@@ -54,3 +54,6 @@ export const pair = (x, y) => (m) =>
         : m === 1
             ? y
             : (() => { throw new Error(`argument not 0 or 1 -- pair: ${m}`); })();
+
+export const pprint = (e) =>
+    console.dir(e, { depth: null, colors: true });
