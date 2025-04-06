@@ -205,13 +205,13 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     visitType(ctx: TypeContext) {
         if (ctx === null) return { tag: "type", type: "void" } // void return type
         const mut = ctx.MUT();
-        const bor = ctx.BOR();
+        const ref = ctx.REF();
         const type = ctx.type();
 
         return {
             tag: "type",
             mut: mut !== null,
-            bor: bor !== null,
+            ref: ref !== null,
             // Recursively check until reaching a primitive
             type: (type !== null)
                 ? this.visit(type) // nested type
