@@ -29,8 +29,8 @@ type:
 	| 'f64'
 	| 'bool'
 	| 'String'
-	| BOR type
-	| BOR MUT type
+	| REF type
+	| REF MUT type
 	| 'Box' '<' type '>'
 	| 'Rc' '<' type '>';
 
@@ -60,8 +60,8 @@ expression:
 	| expression op = ('==' | '!=' | '<' | '>' | '<=' | '>=') expression	# Compare
 	| expression op = ('&&' | '||') expression								# Logical
 	| ID '(' (argList)? ')'													# FunctionCall
-	| BOR expression														# Borrow
-	| BOR MUT expression													# MutableBorrow
+	| REF expression														# Borrow
+	| REF MUT expression													# MutableBorrow
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp
@@ -73,7 +73,7 @@ expression:
 
 argList: expression (',' expression)*;
 
-BOR: '&';
+REF: '&';
 MUT: 'mut';
 
 MUL: '*';
