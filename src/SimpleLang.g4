@@ -60,8 +60,8 @@ expression:
 	| expression op = ('==' | '!=' | '<' | '>' | '<=' | '>=') expression	# Compare
 	| expression op = ('&&' | '||') expression								# Logical
 	| ID '(' (argList)? ')'													# FunctionCall
-	| REF expression														# Borrow
-	| REF MUT expression													# MutableBorrow
+	| REF expression														# Reference
+	| REF MUT expression													# MutableReference
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp
