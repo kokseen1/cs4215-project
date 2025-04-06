@@ -75,6 +75,9 @@ export class Compiler {
         nam:
             // store precomputed position information in LD instruction
             (comp, ce) => {
+                const ctv = this.get_compile_time_value(ce, comp.sym);
+                if (ctv.owner === false) 
+                    error("Error: use of moved value " + comp.sym);
                 this.instrs[this.wc++] = {
                     tag: "LD",
                     sym: comp.sym,
