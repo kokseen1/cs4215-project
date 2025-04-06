@@ -1,5 +1,5 @@
 import { Heap } from './Heap';
-import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, pprint } from './Utils';
 import { SimpleLangParser } from './parser/src/SimpleLangParser';
 
 export class VirtualMachine {
@@ -13,6 +13,14 @@ export class VirtualMachine {
         this.init_builtins()
     }
 
+    private free_variables = (to_free) => {
+        for (const pos of to_free) {
+            const addr = this.heap.heap_get_Environment_value(this.E, pos);
+            const val = this.heap.address_to_JS_value(addr);
+            console.log("freeing "+ val + " from heap");
+            // TODO: implement heap free function
+        }
+    }
 
     private microcode = {
         LDC:
@@ -45,7 +53,10 @@ export class VirtualMachine {
             },
         EXIT_SCOPE:
             instr =>
-                this.E = this.heap.heap_get_Blockframe_environment(this.RTS.pop()),
+            { 
+                this.free_variables(instr.to_free);
+                this.E = this.heap.heap_get_Blockframe_environment(this.RTS.pop())
+            },
         LD:
             instr => {
                 const val = this.heap.heap_get_Environment_value(this.E, instr.pos)

@@ -382,6 +382,7 @@ export class Heap {
             display(i, "value address:")
             const value =
                 this.heap_get_child(address, i)
+            display(value, "addr :")
             display(this.address_to_JS_value(value), "deref value:")
             // display(this.word_to_string(value), "value word:")
         }

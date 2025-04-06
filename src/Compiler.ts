@@ -1,4 +1,4 @@
-import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
 import { SimpleLangParser } from "./parser/src/SimpleLangParser";
 
 export class Compiler {
@@ -21,9 +21,17 @@ export class Compiler {
     // compile-time frames, and a compile-time frame 
     // is an array of symbols
 
+    private get_compile_time_value = (env, x) => {
+        const [frame_index, value_index] =
+            this.compile_time_environment_position(env, x)
+        return env[frame_index][value_index];
+    }
+
+
     // find the position [frame-index, value-index] 
     // of a given symbol x
     private compile_time_environment_position = (env, x) => {
+        // console.log(env)
         let frame_index = env.length
         while (this.value_index(env[--frame_index], x) === -1) { }
         return [frame_index,
@@ -37,12 +45,23 @@ export class Compiler {
 
     private value_index = (frame, x) => {
         for (let i = 0; i < frame.length; i++) {
-            if (typeof frame[i] === 'string' && frame[i] === x)
+            if (typeof frame[i] === 'string' && frame[i] === x) // for builtins and constants
                 return i;
-            else if (typeof frame[i] === 'object' && frame[i].id === x)
+            else if (typeof frame[i] === 'object' && frame[i].sym === x) // let, fun, and param types will store entire comp object
                 return i;
         }
         return -1;
+    }
+
+    private move_ownership = (ce, comp) => {
+        const lhs = this.get_compile_time_value(ce, comp.sym);
+        lhs.owner = true;
+        // only move for valid types (nam, fun) but not (lit)
+        if (comp.expr.sym !== undefined) {
+            const rhs = this.get_compile_time_value(ce, comp.expr.sym);
+            rhs.owner = false;
+        }
+        console.log("move owner from " + (comp.expr.val || comp.expr.sym) + " to "+ comp.sym)
     }
 
     private compile_comp = {
@@ -127,17 +146,20 @@ export class Compiler {
         assmt:
             // store precomputed position info in ASSIGN instruction
             (comp, ce) => {
+                console.log("assmt: ")
+                // pprint(comp)
                 this.compile(comp.expr, ce)
                 this.instrs[this.wc++] = {
                     tag: 'ASSIGN',
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
+                this.move_ownership(ce, comp);
             },
         let:
             (comp, ce) => {
                 console.log("let: ")
-                console.log(comp)
+                // pprint(comp)
                 this.compile(comp.expr, ce)
                 this.instrs[this.wc++] = {
                     tag: 'ASSIGN',
@@ -145,6 +167,8 @@ export class Compiler {
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
+                this.move_ownership(ce, comp);
+                // pprint(ce)
             },
         const:
             (comp, ce) => {
@@ -179,12 +203,15 @@ export class Compiler {
             (comp, ce) => {
                 const locals = this.scan(comp.body)
                 this.instrs[this.wc++] = { tag: 'ENTER_SCOPE', num: locals.length }
-                this.compile(comp.body,
-                    // extend compile-time environment
-                    this.compile_time_environment_extend(
-                        locals, ce))
-                        console.log("locals: " + locals)
-                this.instrs[this.wc++] = { tag: 'EXIT_SCOPE' }
+                // extend compile-time environment
+                const extended_ce = this.compile_time_environment_extend(locals, ce);
+                this.compile(comp.body, extended_ce)
+                pprint("exit blk: ")
+                const exited_frame = extended_ce.at(-1);
+                const to_free = exited_frame
+                    .filter(e => e.owner === true)
+                    .map(e => this.compile_time_environment_position(extended_ce, e.sym))
+                this.instrs[this.wc++] = { tag: 'EXIT_SCOPE', to_free: to_free }
             },
         ret:
             (comp, ce) => {
@@ -229,7 +256,7 @@ export class Compiler {
             ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
                 [])
             : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp.sym]
+                ? [comp] // store entire comp object
                 : []
 
     // compile component into instruction array instrs,
