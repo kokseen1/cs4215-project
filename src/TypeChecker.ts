@@ -1,49 +1,34 @@
 import { push, error} from './Utils';
 
 export class TypeChecker {
-    private global_type_environment
-    
-    private type_dict = {} // fake env, need to change to real env for scoping!!
+    constructor() {}
 
-    constructor(builtins, constants) {
-        const builtin_type_frame = Object.keys(builtins)
-        const constant_type_frame = Object.keys(constants)
-        this.global_type_environment =
-            [builtin_type_frame, constant_type_frame]
-    }
-
-    // ************************
-    // type-time environment
-    // ************************/
-
-    // a type-time environment is an array of 
-    // type-time frames, and a type-time frame 
-    // is an array of symbols
-
-    private type_environment_extend = (vs, e) => {
-        //  make shallow copy of e
-        return push([...e], vs)
+    private type_environment_extend = (te, items) => {
+        const _te = { ...te }
+        for (const key of items) {
+            _te[key] = {}
+        }
+        return _te
     }
 
     private type_comp = {
         lit:
-            (comp, ce) => {
+            (comp, te) => {
             },
         nam:
-            // store precomputed position information in LD instruction
-            (comp, ce) => {
+            (comp, te) => {
             },
         unop:
-            (comp, ce) => {
-                this.type(comp.frst, ce)
+            (comp, te) => {
+                this.type(comp.frst, te)
             },
         binop:
-            (comp, ce) => {
-                this.type(comp.frst, ce)
-                this.type(comp.scnd, ce)
+            (comp, te) => {
+                this.type(comp.frst, te)
+                this.type(comp.scnd, te)
             },
         log:
-            (comp, ce) => {
+            (comp, te) => {
                 this.type(comp.sym == '||'
                     ? {
                         tag: 'cond_expr',
@@ -57,68 +42,76 @@ export class TypeChecker {
                         cons: comp.scnd,
                         alt: { tag: 'lit', val: false }
                     },
-                    ce)
+                    te)
             },
         cond:
-            (comp, ce) => {
-                this.type(comp.pred, ce)
-                this.type(comp.cons, ce)
-                this.type(comp.alt, ce)
+            (comp, te) => {
+                this.type(comp.pred, te)
+                this.type(comp.cons, te)
+                this.type(comp.alt, te)
             },
         while:
-            (comp, ce) => {
-                this.type(comp.pred, ce)
-                this.type(comp.body, ce)
+            (comp, te) => {
+                this.type(comp.pred, te)
+                this.type(comp.body, te)
             },
         app:
-            (comp, ce) => {
-                this.type(comp.fun, ce)
+            (comp, te) => {
+                this.type(comp.fun, te)
                 for (let arg of comp.args) {
-                    this.type(arg, ce)
+                    this.type(arg, te)
                 }
             },
         assmt:
-            (comp, ce) => {
+            (comp, te) => {
+                
+                // error if var is OUT OF SCOPE
+                if (!(comp.sym in te)) {
+                    error("cannot find value `" + comp.sym + "` in this scope")
+                }   
 
-                // error if var is IMMUTABLE
-                if (this.type_dict[comp.sym] !== comp.mut) {
+                // error if var is IMMUTABLE    
+                if (te[comp.sym]["mut"] !== true) {
                     error("cannot assign twice to immutable variable `" + comp.sym + "`")
                 }
-
-                this.type(comp.expr, ce)
+                this.type(comp.expr, te)
             },
         lam:
-            (comp, ce) => {
-                // extend type-time environment
-                this.type(comp.body,
-                    this.type_environment_extend(
-                        comp.prms, ce))
+            (comp, te) => {
+                this.type(
+                    comp.body,
+                    this.type_environment_extend(te, comp.prms)
+                )
             },
         seq:
-            (comp, ce) => this.type_sequence(comp.stmts, ce),
+            (comp, te) => this.type_sequence(comp.stmts, te),
         blk:
-            (comp, ce) => {
+            (comp, te) => {
                 const locals = this.scan(comp.body)
-                this.type(comp.body,
-                    // extend type-time environment
-                    this.type_environment_extend(
-                        locals, ce))
+                this.type(
+                    comp.body,
+                    this.type_environment_extend(te, locals)
+                )
+
+                // TODO: once done with block, should `free` allocated locals!
+                console.log("TO FREE: ", locals)
+
             },
         let:
-            (comp, ce) => {
-                this.type_dict[comp.sym] = comp.mut
-                this.type(comp.expr, ce)
+            (comp, te) => {
+                te[comp.sym]["mut"] = comp.mut
+                this.type(comp.expr, te)
             },
         const:
-            (comp, ce) => {
-                this.type(comp.expr, ce)
+            (comp, te) => {
+                this.type(comp.expr, te)
             },
         ret:
-            (comp, ce) => {
-                this.type(comp.expr, ce)
+            (comp, te) => {
+                this.type(comp.expr, te)
             },
         fun:
-            (comp, ce) => {
+            (comp, te) => {
                 this.type(
                     {
                         tag: 'const',
@@ -129,18 +122,17 @@ export class TypeChecker {
                             body: comp.body
                         }
                     },
-                    ce)
+                    te)
             }
     }
 
-    private type_sequence = (seq, ce) => {
+    private type_sequence = (seq, te) => {
         let first = true
         for (let comp of seq) {
-            this.type(comp, ce)
+            this.type(comp, te)
         }
     }
-
-
+    
     private scan = comp =>
         comp.tag === 'seq'
             ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
@@ -151,14 +143,16 @@ export class TypeChecker {
 
     // type component into instruction array instrs,
     // starting at wc (write counter)
-    private type = (comp, ce) => {
-        this.type_comp[comp.tag](comp, ce);
+    private type = (comp, te) => {
+        //console.log(comp.tag, te)
+        this.type_comp[comp.tag](comp, te)
     };
 
     // type program into instruction array instrs,
     // after initializing wc and instrs
     public type_program = (program) => {
-        this.type(program, this.global_type_environment);
+        let type_env = {}
+        this.type(program, type_env)
         return true
     };
 }

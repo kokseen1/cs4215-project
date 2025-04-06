@@ -34,11 +34,11 @@ export class SimpleLangEvaluator {
         const prog = this.visitor.visit(tree);
         console.log(JSON.stringify(prog));
 
+        // Instantiate the TypeChecker
+        this.typeChecker = new TypeChecker();
+
         // Instantiate the VM
         this.vm = new VirtualMachine();
-
-        // Instantiate the TypeChecker
-        this.typeChecker = new TypeChecker(this.vm.get_builtins(), this.vm.get_constants());
 
         // Instantiate the compiler
         this.compiler =
