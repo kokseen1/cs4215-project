@@ -197,7 +197,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const id = ctx.ID().getText();
         return {
             tag: "param",
-            id: id,
+            sym: id, // sym to ensure consistency in compile-time-env
             type: this.visit(type),
         }
     }
@@ -213,7 +213,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             mut: mut !== null,
             bor: bor !== null,
             // Recursively check until reaching a primitive
-            sym: (type !== null)
+            type: (type !== null)
                 ? this.visit(type) // nested type
                 : ctx.getText() // primitive type
         }
