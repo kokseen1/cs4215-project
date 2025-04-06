@@ -226,7 +226,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         return {
             tag: "app",
             fun: {tag: "nam", sym: id.getText()},
-            args: this.visit(argList)
+            args: this.visitArgList(argList)
         }
     }
 
