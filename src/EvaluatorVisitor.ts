@@ -203,7 +203,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitType(ctx: TypeContext) {
-        if (ctx === null) return { tag: "type", sym: "void" } // void return type
+        if (ctx === null) return { tag: "type", type: "void" } // void return type
         const mut = ctx.MUT();
         const bor = ctx.BOR();
         const type = ctx.type();
