@@ -140,9 +140,16 @@ export class VirtualMachine {
         [SimpleLangParser.EQ]: (x, y) => x === y,
         [SimpleLangParser.NEQ]: (x, y) => x !== y
     }
-    private apply_unop = (op, v) => this.unop_microcode[op](v)
 
-    private apply_binop = (op, v2, v1) => this.binop_microcode[op](v1, v2)
+    // v2 is popped before v1
+    private apply_binop = (op, v2, v1) =>
+        this.heap.JS_value_to_address(this.binop_microcode[op]
+            (this.heap.address_to_JS_value(v1),
+                this.heap.address_to_JS_value(v2)))
+
+    private apply_unop = (op, v) =>
+        this.heap.JS_value_to_address(this.unop_microcode[op]
+            (this.heap.address_to_JS_value(v)))
 
     private builtin_implementation = {
         display: () => {
@@ -202,7 +209,7 @@ export class VirtualMachine {
         while (!(instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
             // console.log([instrs[this.PC]]) 
-            process.stdout.write("PC: "+ this.PC + ": ")
+            process.stdout.write("PC: " + this.PC + ": ")
             console.log(instrs[this.PC])
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
