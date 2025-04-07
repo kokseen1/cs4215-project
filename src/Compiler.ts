@@ -32,10 +32,14 @@ export class Compiler {
     // of a given symbol x
     private compile_time_environment_position = (env, x) => {
         // console.log(env)
-        let frame_index = env.length
-        while (this.value_index(env[--frame_index], x) === -1) { }
-        return [frame_index,
-            this.value_index(env[frame_index], x)]
+        for (let frame_index = env.length - 1; frame_index >= 0; frame_index--) {
+            const value_index = this.get_value_index(env[frame_index], x);
+            if (value_index !== -1) {
+                return [frame_index, value_index]
+            }
+        }
+        // cannot find symbol in environment
+        error("Error: cannot find symbol: " + x)
     }
 
     private compile_time_environment_extend = (vs, e) => {
@@ -43,13 +47,20 @@ export class Compiler {
         return push([...e], vs)
     }
 
-    private value_index = (frame, x) => {
+    private get_symbol = (x) =>
+        typeof x === 'string'// for builtins and constants
+            ? x
+            : (typeof x === 'object') // let, fun, and param types will store entire comp object
+                ? x.sym
+                : error("Error: cannot get symbol")
+
+    // returns the 0-based index of the symbol in the frame
+    private get_value_index = (frame: any[], x: string) => {
         for (let i = 0; i < frame.length; i++) {
-            if (typeof frame[i] === 'string' && frame[i] === x) // for builtins and constants
-                return i;
-            else if (typeof frame[i] === 'object' && frame[i].sym === x) // let, fun, and param types will store entire comp object
+            if (this.get_symbol(frame[i]) === x)
                 return i;
         }
+        // value does not exist in frame
         return -1;
     }
 
@@ -61,7 +72,7 @@ export class Compiler {
             const rhs = this.get_compile_time_value(ce, comp.expr.sym);
             rhs.owner = false;
         }
-        console.log("move owner from " + (comp.expr.val || comp.expr.sym) + " to "+ comp.sym)
+        console.log("move owner from " + (comp.expr.val || comp.expr.sym) + " to " + comp.sym)
     }
 
     private compile_comp = {
@@ -76,7 +87,7 @@ export class Compiler {
             // store precomputed position information in LD instruction
             (comp, ce) => {
                 const ctv = this.get_compile_time_value(ce, comp.sym);
-                if (ctv.owner === false) 
+                if (ctv.owner === false)
                     error("Error: use of moved value " + comp.sym);
                 this.instrs[this.wc++] = {
                     tag: "LD",
