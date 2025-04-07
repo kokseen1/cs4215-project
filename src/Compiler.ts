@@ -109,18 +109,19 @@ export class Compiler {
             },
         log:
             (comp, ce) => {
-                this.compile(comp.sym == '||'
+                console.log(comp)
+                this.compile(comp.sym == SimpleLangParser.AND
                     ? {
-                        tag: 'cond_expr',
-                        pred: comp.frst,
-                        cons: { tag: 'lit', val: true },
-                        alt: comp.scnd
-                    }
-                    : {
-                        tag: 'cond_expr',
+                        tag: 'cond',
                         pred: comp.frst,
                         cons: comp.scnd,
                         alt: { tag: 'lit', val: false }
+                    }
+                    : {
+                        tag: 'cond',
+                        pred: comp.frst,
+                        cons: { tag: 'lit', val: true },
+                        alt: comp.scnd
                     },
                     ce)
             },
