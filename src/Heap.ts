@@ -341,7 +341,7 @@ export class Heap {
     public heap_get_Blockframe_environment = address =>
         this.heap_get_child(address, 0)
 
-    private is_Blockframe = address =>
+    public is_Blockframe = address =>
         this.heap_get_tag(address) === this.Blockframe_tag
 
     // call frame 
