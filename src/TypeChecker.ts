@@ -1,158 +1,342 @@
-import { push, error} from './Utils';
+import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null } from './Utils';
 
 export class TypeChecker {
     constructor() {}
 
-    private type_environment_extend = (te, items) => {
-        const _te = { ...te }
-        for (const key of items) {
-            _te[key] = {}
-        }
-        return _te
+    // turn a given type into a string
+    // Example:
+    // unparse_type({"tag": "fun", 
+    //               "args": ["number", "number"], 
+    //               "res": "bool"})
+    // returns
+    // "(number, number > bool)"
+    private unparse_types = ts =>
+        ts.length === 0 
+        ? "null"
+        : ts.reduce((s, t) => s === "" 
+                            ? this.unparse_type(t) 
+                            : s + ", " + this.unparse_type(t), "")
+    private unparse_type = t =>
+        is_string(t) 
+        ? t 
+        : // t is function type
+        "(" + this.unparse_types(t.args) + " > " + 
+        this.unparse_type(t.res) + ")"
+    
+    private equal_types = (ts1, ts2) =>
+        this.unparse_types(ts1) === this.unparse_types(ts2)
+        
+    private equal_type = (t1, t2) =>
+        this.unparse_type(t1) === this.unparse_type(t2)
+
+    /* *****************
+    * type environments
+    * *****************/
+
+    // Type frames are JavaScript objects that map 
+    // symbols (strings) to types.
+    private unary_arith_type =
+        { tag: "fun", args: ["number"], 
+        res: "number" }
+        
+    private binary_arith_type =
+        { tag: "fun", args: ["number", "number"], 
+        res: "number" }
+
+    private number_comparison_type =
+        { tag: "fun", args: ["number", "number"], 
+        res: "bool" }
+
+    private binary_bool_type =
+        { tag: "fun", args: ["bool"], 
+        res: "bool" }
+        
+    private unary_bool_type =
+        { tag: "fun", args: ["bool"], 
+        res: "bool" }
+        
+    private global_type_frame = {
+        "undefined": "undefined",
+        math_E: "number",
+        math_PI: "number",
+        math_sin: this.unary_arith_type,
+        "+": this.binary_arith_type,
+        "-": this.binary_arith_type,
+        "*": this.binary_arith_type,
+        "/": this.binary_arith_type,
+        "<": this.number_comparison_type,
+        ">": this.number_comparison_type,
+        "<=": this.number_comparison_type,
+        ">=": this.number_comparison_type,
+        "===": this.number_comparison_type,
+        "&&": this.binary_bool_type,
+        "||": this.binary_bool_type,
+        "-unary": this.unary_arith_type,
+        "!": this.unary_bool_type
     }
 
+    // A type environment is null or a pair 
+    // whose head is a frame and whose tail 
+    // is a type environment.
+    private empty_type_environment = null
+    private global_type_environment = pair(this.global_type_frame, this.empty_type_environment)
+
+    // returns `void` if type is unspecified
+    private get_type = (type_info) => {
+        return type_info.type
+    }
+
+    private lookup_field = (field, x, e) => {
+        return is_null(e)
+        ? error("unbound name: " + x)
+        : head(e).hasOwnProperty(x) 
+        ? head(e)[x][field]
+        : this.lookup_field(field, x, tail(e))
+    }
+
+    private update_field = (field, x, val, e) => {
+        return is_null(e)
+            ? error("unbound name: " + x)
+            : head(e).hasOwnProperty(x)
+            ? (head(e)[x][field] = val)
+            : this.update_field(field, x, val, tail(e));
+    }
+
+    private extend_type_environment = (xs, ts, e) => {
+        if (ts.length > xs.length) 
+            error('too few parameters in function declaration')
+        if (ts.length < xs.length) 
+            error('too many parameters in function declaration')
+        const new_frame = {}
+        for (let i = 0; i < xs.length; i++) 
+            new_frame[xs[i]] = ts[i]
+        return pair(new_frame, e)
+    }
+
+    // type_comp has the typing
+    // functions for each component tag
     private type_comp = {
         lit:
-            (comp, te) => {
-            },
+            (comp, te) => is_number(comp.val) 
+                        ? "i32"
+                        : is_boolean(comp.val)
+                        ? "bool"
+                        : is_undefined(comp.val)
+                        ? "undefined"
+                        : error("unknown literal: " + comp.val),
         nam:
-            (comp, te) => {
-            },
+            (comp, te) => this.lookup_field("type", comp.sym, te),
         unop:
-            (comp, te) => {
-                this.type(comp.frst, te)
-            },
+            (comp, te) => this.type({tag: 'app',
+                                fun: {tag: 'nam', sym: comp.sym},
+                                args: [comp.frst]}, te),
         binop:
-            (comp, te) => {
-                this.type(comp.frst, te)
-                this.type(comp.scnd, te)
-            },
+            (comp, te) => this.type({tag: 'app',
+                                fun: {tag: 'nam', sym: comp.sym},
+                                args: [comp.frst, comp.scnd]}, te),
         log:
+            (comp, te) => this.type({tag: 'app',
+                                fun: {tag: 'nam', sym: comp.sym},
+                                args: [comp.frst, comp.scnd]}, te),
+        cond_expr: 
             (comp, te) => {
-                this.type(comp.sym == '||'
-                    ? {
-                        tag: 'cond_expr',
-                        pred: comp.frst,
-                        cons: { tag: 'lit', val: true },
-                        alt: comp.scnd
-                    }
-                    : {
-                        tag: 'cond_expr',
-                        pred: comp.frst,
-                        cons: comp.scnd,
-                        alt: { tag: 'lit', val: false }
-                    },
-                    te)
+                const t0 = this.type(comp.pred, te)
+                if (t0 !== "bool") 
+                    error("expected predicate type: bool, " +
+                        "actual predicate type: " + 
+                        this.unparse_type(t0))
+                const t1 = this.type(comp.cons, te)
+                const t2 = this.type(comp.alt, te)
+                if (this.equal_type(t1, t2)) {
+                    return t1
+                } else {
+                    error("types of branches not matching; " +
+                        "consequent type: " + 
+                        this.unparse_type(t1) + ", " +
+                        "alternative type: " + 
+                        this.unparse_type(t2))
+                }
             },
-        cond:
+        // outside of function bodies,
+        // conditional statements are 
+        // treated as conditional expressions
+        cond_stmt: 
             (comp, te) => {
-                this.type(comp.pred, te)
-                this.type(comp.cons, te)
-                this.type(comp.alt, te)
+                comp.tag = "cond_expr"
+                return this.type(comp, te)
             },
-        while:
+        fun:
             (comp, te) => {
-                this.type(comp.pred, te)
-                this.type(comp.body, te)
+                console.log(comp.prms)
+                console.log(comp)
+                const extended_te = this.extend_type_environment(
+                                comp.prms,
+                                comp.type.args, // CHANGE THIS
+                                te)
+                const body_type = this.type_fun_body(comp.body, extended_te)
+                if (this.equal_type(body_type, comp.type.res)) {
+                    return "undefined"
+                } else {
+                    error("type error in function declaration; " +
+                            "declared return type: " +
+                            this.unparse_type(comp.type.res) + ", " +
+                            "actual return type: " + 
+                            this.unparse_type(body_type))
+                }
             },
         app:
             (comp, te) => {
-                this.type(comp.fun, te)
-                for (let arg of comp.args) {
-                    this.type(arg, te)
+                const fun_type = this.type(comp.fun, te)
+                if (fun_type.tag !== "fun") 
+                    error("type error in application; function " +
+                            "expression must have function type; " +
+                            "actual type: " + this.unparse_type(fun_type))
+                const expected_arg_types = fun_type.args
+                const actual_arg_types = comp.args.map(e => this.type(e, te))
+                if (this.equal_types(actual_arg_types, expected_arg_types)) {
+                    return fun_type.res
+                } else {
+                    error("type error in application; " +
+                        "expected argument types: " + 
+                        this.unparse_types(expected_arg_types) + ", " +
+                        "actual argument types: " + 
+                        this.unparse_types(actual_arg_types))
+                }
+            },
+        let:
+            (comp, te) => {
+                const declared_type = this.lookup_field("type", comp.sym, te)
+                const actual_type = this.type(comp.expr, te)
+                if (declared_type === "void" || this.equal_type(actual_type, declared_type)) { 
+                    // update type to actual type, if declared type is void
+                    this.update_field("type", comp.sym, actual_type, te)
+                    this.update_field("mut", comp.sym, comp.mut, te)
+                    return "undefined"
+                } else {
+                    error("type error in declaration; " + 
+                            "expected " +
+                            this.unparse_type(declared_type) + ", " +
+                            "found " + 
+                            this.unparse_type(actual_type))
                 }
             },
         assmt:
             (comp, te) => {
+                const declared_type = this.lookup_field("type", comp.sym, te)
+                const actual_type = this.type(comp.expr, te)
                 
-                // error if var is OUT OF SCOPE
-                if (!(comp.sym in te)) {
-                    error("cannot find value `" + comp.sym + "` in this scope")
-                }   
-
-                // error if var is IMMUTABLE    
-                if (te[comp.sym]["mut"] !== true) {
+                if (this.lookup_field("mut", comp.sym, te) !== true) {
                     error("cannot assign twice to immutable variable `" + comp.sym + "`")
                 }
-                this.type(comp.expr, te)
+
+                if (this.equal_type(actual_type, declared_type)) {
+                    return "undefined"
+                } else {
+                    error("type error in assignment; " + 
+                            "expected " +
+                            this.unparse_type(declared_type) + ", " +
+                            "found " + 
+                            this.unparse_type(actual_type))
+                }
+                return "undefined"
             },
-        lam:
+        seq: 
             (comp, te) => {
-                this.type(
-                    comp.body,
-                    this.type_environment_extend(te, comp.prms)
-                )
+                const component_types = comp.stmts.map(
+                                            s => this.type(s, te))
+                return component_types.length === 0
+                    ? "undefined"
+                    : component_types[component_types.length - 1]
             },
-        seq:
-            (comp, te) => this.type_sequence(comp.stmts, te),
         blk:
             (comp, te) => {
-                const locals = this.scan(comp.body)
-                this.type(
-                    comp.body,
-                    this.type_environment_extend(te, locals)
-                )
+                // scan out declarations
+                let decls = [comp.body] // handle single-stmt programs
+                if ("stmts" in comp.body) {
+                    decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
+                }
 
-                // TODO: once done with block, should `free` allocated locals!
-                console.log("TO FREE: ", locals)
-
-            },
-        let:
-            (comp, te) => {
-                te[comp.sym]["mut"] = comp.mut
-                this.type(comp.expr, te)
-            },
-        const:
-            (comp, te) => {
-                this.type(comp.expr, te)
+                const extended_te = this.extend_type_environment(
+                                decls.map(comp => comp.sym),
+                                decls.map(comp => ({ "type": this.get_type(comp.type) })),
+                                te)
+                return this.type(comp.body, extended_te)
             },
         ret:
-            (comp, te) => {
-                this.type(comp.expr, te)
-            },
-        fun:
-            (comp, te) => {
-                this.type(
-                    {
-                        tag: 'const',
-                        sym: comp.sym,
-                        expr: {
-                            tag: 'lam',
-                            prms: comp.prms,
-                            body: comp.body
-                        }
-                    },
-                    te)
-            }
+            (comp, te) => comp
     }
 
-    private type_sequence = (seq, te) => {
-        let first = true
-        for (let comp of seq) {
+    private type = (comp, te) => {
+        console.log(comp.tag)
+        return this.type_comp[comp.tag](comp, te)
+    }
+
+    // type_fun_body_stmt has the typing
+    // functions for function body statements
+    // for each component tag
+    private type_fun_body_stmt = {
+        cond_stmt: 
+            (comp, te) => {
+                const t0 = this.type(comp.pred, te)
+                if (t0 !== "bool") 
+                    error("expected predicate type: bool, " +
+                        "actual predicate type: " + 
+                        this.unparse_type(t0))
+                const t1 = this.type_fun_body(comp.cons, te)
+                const t2 = this.type_fun_body(comp.alt, te)
+                if (this.equal_type(t1, t2)) {
+                    return t1
+                } else {
+                    error("types of branches not matching; " +
+                        "consequent type: " + 
+                        this.unparse_type(t1) + ", " +
+                        "alternative type: " + 
+                        this.unparse_type(t2))
+                }
+            },
+        seq: 
+            (comp, te) => {
+                for (const stmt of comp.stmts) {
+                    const stmt_type = this.type_fun_body(stmt, te)
+                    if (this.equal_type(stmt_type, "undefined")) {
+                    } else {
+                        return stmt_type
+                    }
+                }
+                return "undefined"
+            },
+        blk:
+            (comp, te) => {
+                // scan out declarations
+                let decls = [comp.body] // handle single-stmt programs
+                if ("stmts" in comp.body) {
+                    decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
+                }
+
+                const extended_te = this.extend_type_environment(
+                                decls.map(comp => comp.sym),
+                                decls.map(comp => ({ "type": this.get_type(comp.type) })),
+                                te) 
+                return this.type_fun_body(comp.body, extended_te)
+            },
+        ret:
+            (comp, te) => this.type(comp.expr, te)
+    }
+
+    private type_fun_body = (comp, te) => {
+        const handler = this.type_fun_body_stmt[comp.tag]
+        if (handler) {
+            return handler(comp, te)
+        } else {
             this.type(comp, te)
+            return "undefined"
         }
     }
-    
-    private scan = comp =>
-        comp.tag === 'seq'
-            ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
-                [])
-            : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp.sym]
-                : []
-
-    // type component into instruction array instrs,
-    // starting at wc (write counter)
-    private type = (comp, te) => {
-        //console.log(comp.tag, te)
-        this.type_comp[comp.tag](comp, te)
-    };
 
     // type program into instruction array instrs,
     // after initializing wc and instrs
     public type_program = (program) => {
-        let type_env = {}
-        this.type(program, type_env)
+        this.type(program, this.global_type_environment)
         return true
     };
 }
