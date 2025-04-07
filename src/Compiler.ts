@@ -65,6 +65,16 @@ export class Compiler {
         return -1;
     }
 
+    private lose_ownership = (ce, comp) => {
+        if (comp.ref === true)
+            error("Reference cannot lose ownership")
+        if (comp.sym !== undefined) {
+            const rhs = this.get_compile_time_value(ce, comp.sym);
+            rhs.owner = false;
+        }
+        console.log(comp.sym + " lost ownership");
+    }
+
     private move_ownership = (ce, comp) => {
         const lhs = this.get_compile_time_value(ce, comp.sym);
         lhs.owner = true;
@@ -90,6 +100,8 @@ export class Compiler {
                 const ctv = this.get_compile_time_value(ce, comp.sym);
                 if (ctv.owner === false)
                     error("Error: use of moved value " + comp.sym);
+                if (comp.is_arg === true && comp.ref !== true)
+                    this.lose_ownership(ce, comp)
                 this.instrs[this.wc++] = {
                     tag: "LD",
                     sym: comp.sym,

@@ -1,6 +1,6 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
@@ -115,6 +115,13 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         };
     }
 
+    visitReference(ctx: ReferenceContext) {
+        const expr = ctx.expression();
+        const nam = this.visit(expr); // assume expression can only be Id
+        nam.ref = true;
+        return nam
+    }
+
     visitReturnStmt(ctx: ReturnStmtContext) {
         const expr = ctx.expression();
         return {
@@ -189,7 +196,11 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const args = ctx.expression();
         return args.length === 0
             ? error("error: empty args list") // should not happen here
-            : args.map(a => this.visit(a));
+            : args.map(a => {
+                const arg = this.visit(a);
+                arg.is_arg = true;
+                return arg;
+            });
     }
 
     visitParam(ctx: ParamContext) {
@@ -225,7 +236,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
 
         return {
             tag: "app",
-            fun: {tag: "nam", sym: id.getText()},
+            fun: { tag: "nam", sym: id.getText() },
             args: this.visitArgList(argList)
         }
     }
