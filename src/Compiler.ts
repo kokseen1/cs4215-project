@@ -77,7 +77,14 @@ export class Compiler {
 
     private move_ownership = (ce, comp) => {
         const lhs = this.get_compile_time_value(ce, comp.sym);
-        lhs.owner = true; // need to free if it was already owning something
+        // TODO: need to free if it was already owning something (mutated)
+        // might be possible to compile a drop instruction right here
+        // e.g.:
+        // let mut x = String::from("asd");
+        // let y = String::from("asd");
+        // insert DROP (x)
+        // let x = y;
+        lhs.owner = true;
         // only move for valid types (nam, fun) but not (lit)
         if (comp.expr.sym !== undefined) {
             const rhs = this.get_compile_time_value(ce, comp.expr.sym);
