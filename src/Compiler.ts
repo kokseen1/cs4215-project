@@ -109,7 +109,6 @@ export class Compiler {
             },
         log:
             (comp, ce) => {
-                console.log(comp)
                 this.compile(comp.sym == SimpleLangParser.AND
                     ? {
                         tag: 'cond',
