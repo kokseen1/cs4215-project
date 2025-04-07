@@ -5,6 +5,7 @@ export class Compiler {
     private instrs = [];
     private wc = 0;
     private global_compile_environment
+    private ce_size_bef_fun = -1;
 
     constructor(builtins, constants) {
         const builtin_compile_frame = Object.keys(builtins)
@@ -203,10 +204,19 @@ export class Compiler {
                 // jump over the body of the lambda expression
                 const goto_instruction: any = { tag: 'GOTO' }
                 this.instrs[this.wc++] = goto_instruction
+                this.ce_size_bef_fun = ce.length;
                 // extend compile-time environment
-                this.compile(comp.body,
-                    this.compile_time_environment_extend(
-                        comp.prms, ce))
+                const prms = comp.prms.map(p =>
+                    // take ownership if not borrowing
+                    this.set_ownership(p, p.type.ref === false))
+                const extended_ce = this.compile_time_environment_extend(
+                    prms, ce);
+                this.compile(comp.body, extended_ce)
+                // pprint(extended_ce)
+                const drop_instr = this.instrs[this.wc - 2];
+                // update DROP instruction with function parameters
+                drop_instr.to_free =
+                    drop_instr.to_free.concat(this.get_droppable_positions(ce.length, extended_ce))
                 this.instrs[this.wc++] = { tag: 'LDC', val: undefined }
                 this.instrs[this.wc++] = { tag: 'RESET' }
                 goto_instruction.addr = this.wc;
@@ -220,16 +230,13 @@ export class Compiler {
                 // extend compile-time environment
                 const extended_ce = this.compile_time_environment_extend(locals, ce);
                 this.compile(comp.body, extended_ce)
-                pprint("exit blk: ")
-                const exited_frame = extended_ce.at(-1);
-                const to_free = exited_frame
-                    .filter(e => e.owner === true)
-                    .map(e => this.compile_time_environment_position(extended_ce, e.sym))
-                this.instrs[this.wc++] = { tag: 'EXIT_SCOPE', to_free: to_free }
+                this.generate_drop_instr(ce.length, extended_ce);
+                this.instrs[this.wc++] = { tag: 'EXIT_SCOPE' }
             },
         ret:
             (comp, ce) => {
                 this.compile(comp.expr, ce)
+                this.generate_drop_instr(this.ce_size_bef_fun, ce);
                 if (comp.expr.tag === 'app') {
                     // tail call: turn CALL into TAILCALL
                     this.instrs[this.wc - 1].tag = 'TAIL_CALL'
@@ -253,6 +260,36 @@ export class Compiler {
             }
     }
 
+    private get_droppable_positions = (ce_idx: number, ce) => {
+        if (ce_idx === -1)
+            error("Error: unable to get droppable positions")
+        const positions = [];
+        for (let i = ce_idx; i < ce.length; i++) {
+            const frame = ce[i];
+            for (const value of frame) {
+                if (value.owner === true) {
+                    const sym = this.get_symbol(value);
+                    positions.push({
+                        sym: sym,
+                        pos: this.compile_time_environment_position(ce, sym)
+                    })
+                }
+            }
+        }
+        return positions;
+    }
+
+    private make_drop_instr = (ce_idx: number, ce) => {
+        return {
+            tag: 'DROP',
+            to_free: this.get_droppable_positions(ce_idx, ce)
+        }
+    }
+
+    private generate_drop_instr = (ce_idx: number, ce) =>
+        this.instrs[this.wc++] = this.make_drop_instr(ce_idx, ce)
+
+
     private compile_sequence = (seq, ce) => {
         if (seq.length === 0)
             return this.instrs[this.wc++] = { tag: "LDC", val: undefined }
@@ -264,6 +301,11 @@ export class Compiler {
         }
     }
 
+    private set_ownership = (obj: any, b: boolean) => {
+        if (typeof obj === 'object')
+            obj.owner = b;
+        return obj;
+    }
 
     private scan = comp =>
         comp.tag === 'seq'

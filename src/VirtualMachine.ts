@@ -51,10 +51,14 @@ export class VirtualMachine {
                     this.heap.heap_set_child(frame_address, i, this.heap.Unassigned)
                 }
             },
+        DROP:
+            instr => {
+                const to_free = instr.to_free;
+                this.free_variables(to_free.map(x => x.pos));
+            },
         EXIT_SCOPE:
             instr =>
             { 
-                this.free_variables(instr.to_free);
                 this.E = this.heap.heap_get_Blockframe_environment(this.RTS.pop())
             },
         LD:
