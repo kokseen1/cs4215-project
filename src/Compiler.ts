@@ -77,10 +77,11 @@ export class Compiler {
 
     private move_ownership = (ce, comp) => {
         const lhs = this.get_compile_time_value(ce, comp.sym);
-        lhs.owner = true;
+        lhs.owner = true; // need to free if it was already owning something
         // only move for valid types (nam, fun) but not (lit)
         if (comp.expr.sym !== undefined) {
             const rhs = this.get_compile_time_value(ce, comp.expr.sym);
+            if (rhs.owner === false) error(comp.expr.sym + " is already moved");
             rhs.owner = false;
         }
         console.log("move owner from " + (comp.expr.val || comp.expr.sym) + " to " + comp.sym)
@@ -173,8 +174,6 @@ export class Compiler {
         assmt:
             // store precomputed position info in ASSIGN instruction
             (comp, ce) => {
-                console.log("assmt: ")
-                // pprint(comp)
                 this.compile(comp.expr, ce)
                 this.instrs[this.wc++] = {
                     tag: 'ASSIGN',
@@ -185,8 +184,6 @@ export class Compiler {
             },
         let:
             (comp, ce) => {
-                console.log("let: ")
-                // pprint(comp)
                 this.compile(comp.expr, ce)
                 this.instrs[this.wc++] = {
                     tag: 'ASSIGN',
