@@ -236,8 +236,8 @@ export class Heap {
     // in garbage collection: If the (signed) Int32 is
     // non-negative, the node has been forwarded already.
 
-    private False_tag = 0
-    private True_tag = 1
+    private False_tag = 100
+    private True_tag = 101
     private Number_tag = 2
     private Null_tag = 3
     private Unassigned_tag = 4
