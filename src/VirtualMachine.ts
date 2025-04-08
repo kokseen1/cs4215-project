@@ -17,8 +17,9 @@ export class VirtualMachine {
         for (const pos of to_free) {
             const addr = this.heap.heap_get_Environment_value(this.E, pos);
             const val = this.heap.address_to_JS_value(addr);
-            console.log("freeing "+ val + " from heap");
+            console.log("freeing " + val + " from [" + addr + "]");
             // TODO: implement heap free function
+            // Do not free literals such as True, False
         }
     }
 

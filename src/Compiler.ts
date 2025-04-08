@@ -51,9 +51,9 @@ export class Compiler {
     private get_symbol = (x) =>
         typeof x === 'string'// for builtins and constants
             ? x
-            : (typeof x === 'object') // let, fun, and param types will store entire comp object
-                ? x.sym
-                : error("Error: cannot get symbol")
+            : typeof x === 'object' // let, fun, and param types will store entire comp object
+                ? x.sym || error("Symbol is undefined")
+                : error("Error: cannot get symbol for "+x)
 
     // returns the 0-based index of the symbol in the frame
     private get_value_index = (frame: any[], x: string) => {
@@ -65,18 +65,54 @@ export class Compiler {
         return -1;
     }
 
-    private lose_ownership = (ce, comp) => {
+    private gain_ownership = (ce, comp) => {
         if (comp.ref === true)
-            error("Reference cannot lose ownership")
-        if (comp.sym !== undefined) {
-            const rhs = this.get_compile_time_value(ce, comp.sym);
-            rhs.owner = false;
-        }
-        console.log(comp.sym + " lost ownership");
+            error("Reference cannot gain ownership")
+        const sym = this.get_symbol(comp)
+        const ctv = this.get_compile_time_value(ce, sym);
+        ctv.owner = true;
+        console.log(sym + " gained ownership");
     }
 
-    private move_ownership = (ce, comp) => {
-        const lhs = this.get_compile_time_value(ce, comp.sym);
+    private basic_lose = (ce, comp) => {
+        if (comp.ref === true)
+            error("Reference cannot lose ownership")
+        const sym = this.get_symbol(comp)
+        const ctv = this.get_compile_time_value(ce, sym);
+        if (ctv.owner === false)
+            error(sym + " is already moved")
+        ctv.owner = false;
+        console.log(sym + " lost ownership");
+    }
+
+    private binop_lose = (ce, comp) => {
+        // TODO: ensure working for recursive nested binop
+        const frst = comp.frst;
+        const scnd = comp.scnd;
+        this.lose_ownership(ce, frst);
+        this.lose_ownership(ce, scnd);
+    }
+
+    private lose_ownership = (ce, comp) => {
+        switch (comp.tag) {
+            case 'nam':
+            case 'fun':
+                this.basic_lose(ce, comp);
+                break;
+            case 'binop':
+                this.binop_lose(ce, comp);
+                break;
+            case 'unop':
+                // TODO: lose for unop
+                break;
+            case 'lit': // cases such as 'lit' do not need to lose ownership
+                break;
+            default: 
+                break;
+        }
+    }
+
+    private move_ownership = (ce, from, to) => {
         // TODO: need to free if it was already owning something (mutated)
         // might be possible to compile a drop instruction right here
         // e.g.:
@@ -84,18 +120,18 @@ export class Compiler {
         // let y = String::from("asd");
         // insert DROP (x)
         // let x = y;
-        lhs.owner = true;
         // only move for valid types (nam, fun) but not (lit)
-        if (comp.expr.sym !== undefined) {
-            const rhs = this.get_compile_time_value(ce, comp.expr.sym);
-            if (rhs.owner === false) error(comp.expr.sym + " is already moved");
-            rhs.owner = false;
-        }
-        console.log("move owner from " + (comp.expr.val || comp.expr.sym) + " to " + comp.sym)
+
+        // lose first then gain back, to handle `x = x - 1;`
+        this.lose_ownership(ce, from)
+        this.gain_ownership(ce, to)
+        console.log("moved owner from " +
+            (from.val || from.sym) + " ("+from.tag+") to " + this.get_symbol(to))
     }
 
     private compile_comp = {
         lit:
+            // TODO: heap-allocated literals also must be freed when out of scope
             (comp, ce) => {
                 this.instrs[this.wc++] = {
                     tag: "LDC",
@@ -108,8 +144,13 @@ export class Compiler {
                 const ctv = this.get_compile_time_value(ce, comp.sym);
                 if (ctv.owner === false)
                     error("Error: use of moved value " + comp.sym);
-                if (comp.is_arg === true && comp.ref !== true)
-                    this.lose_ownership(ce, comp)
+                // if (comp.is_arg === true && comp.ref !== true)
+                // assume that all nam is moved and loses ownership
+                // might gain back later in seq if it is just a nam statement (e.g. a;)
+                // lose ownership for any non-reference
+                // if (comp.ref !== true)
+                    // pass ownership to function parameters
+                    // this.lose_ownership(ce, comp)
                 this.instrs[this.wc++] = {
                     tag: "LD",
                     sym: comp.sym,
@@ -187,7 +228,7 @@ export class Compiler {
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
-                this.move_ownership(ce, comp);
+                this.move_ownership(ce, comp.expr, comp);
             },
         let:
             (comp, ce) => {
@@ -198,7 +239,7 @@ export class Compiler {
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
-                this.move_ownership(ce, comp);
+                this.move_ownership(ce, comp.expr, comp);
                 // pprint(ce)
             },
         const:
@@ -251,6 +292,9 @@ export class Compiler {
             },
         ret:
             (comp, ce) => {
+                // if (comp.expr.tag === 'nam') {
+                // lose ownership, pass to function application assignee
+                // }
                 this.compile(comp.expr, ce)
                 this.generate_drop_instr(this.ce_size_bef_fun, ce);
                 if (comp.expr.tag === 'app') {
@@ -279,6 +323,7 @@ export class Compiler {
     private get_droppable_positions = (ce_idx: number, ce) => {
         if (ce_idx === -1)
             error("Error: unable to get droppable positions")
+        pprint(ce)
         const positions = [];
         for (let i = ce_idx; i < ce.length; i++) {
             const frame = ce[i];
@@ -314,6 +359,16 @@ export class Compiler {
             first ? first = false
                 : this.instrs[this.wc++] = { tag: 'POP' }
             this.compile(comp, ce)
+
+            // if (['nam', 'app'].includes(comp.tag)) 
+            // {
+            //     // gain back ownership as it is not moved anywhere
+            //     // TODO: handle other expressions like binop
+            //     this.gain_ownership(ce,
+            //         comp.tag === 'app'
+            //             ? comp.fun // use symbol of function definition
+            //             : comp)
+            // }
         }
     }
 
@@ -323,12 +378,21 @@ export class Compiler {
         return obj;
     }
 
+    private make_cte_object = (comp) => {
+        if (comp.sym === undefined)
+            error("Object " + comp + " does not have symbol")
+        return {
+            sym: comp.sym,
+            owner: true // default owners
+        }
+    }
+
     private scan = comp =>
         comp.tag === 'seq'
             ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
                 [])
             : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp] // store entire comp object
+                ? [this.make_cte_object(comp)] // store object instead of string
                 : []
 
     // compile component into instruction array instrs,

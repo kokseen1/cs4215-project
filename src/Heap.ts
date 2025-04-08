@@ -162,8 +162,13 @@ export class Heap {
     private heap_get = address =>
         this.HEAP.getFloat64(address * this.word_size)
 
-    private heap_set = (address, x) =>
+    private heap_set = (address, x) => {
         this.HEAP.setFloat64(address * this.word_size, x)
+        // try{
+        // console.log("allocating " + x + " (" + this.address_to_JS_value(address-1) + ") at [" + address + "]")
+        // } catch (e) {
+        // }
+    }
 
     // child index starts at 0
     private heap_get_child = (address, child_index) =>
@@ -476,6 +481,7 @@ export class Heap {
 
     private heap_allocate_Number = n => {
         const number_address = this.heap_allocate(this.Number_tag, 2)
+        console.log("allocating " + n + " at [" + number_address + "]")
         this.heap_set(number_address + 1, n)
         return number_address
     }
