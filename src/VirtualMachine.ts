@@ -8,6 +8,7 @@ export class VirtualMachine {
     private E;
     private RTS: any[];
     private heap: Heap;
+    private instrs: any[];
 
     constructor() {
         this.init_builtins()
@@ -16,8 +17,8 @@ export class VirtualMachine {
     private free = (addr) => {
         const val = this.heap.address_to_JS_value(addr);
         console.log("freeing " + val + " from [" + addr + "]");
-        // TODO: implement heap free function
         // Do not free literals such as True, False
+        this.heap.free_node(addr)
     }
 
     private free_variables = (positions) => {
@@ -58,18 +59,26 @@ export class VirtualMachine {
             },
         DROP:
             instr => {
+                // TOOD: more reliable way to check
+                // dont pop if it is the last value-producing statement
+                if (this.PC + 2 >= this.instrs.length)
+                    return
                 const to_free = instr.to_free;
                 this.free_variables(to_free.map(x => x.pos));
             },
         DROP_POP:
             instr => {
+                // dont pop if it is the last value-producing statement
+                if (this.PC + 3 >= this.instrs.length)
+                    return
                 // pop from the OS and free the value
                 this.free(this.OS.pop())
             },
         EXIT_SCOPE:
-            instr =>
-            { 
-                this.E = this.heap.heap_get_Blockframe_environment(this.RTS.pop())
+            instr => {
+                const blockframe = this.RTS.pop()
+                this.E = this.heap.heap_get_Blockframe_environment(blockframe)
+                this.free(blockframe)
             },
         LD:
             instr => {
@@ -137,6 +146,7 @@ export class VirtualMachine {
                 } else {
                     this.PC--
                 }
+                this.free(top_frame)
             }
     }
 
@@ -229,17 +239,18 @@ export class VirtualMachine {
 
 
     public run(instrs) {
-        this.initialize_machine(2000000);
+        this.instrs = instrs
+        this.initialize_machine(100000);
         //print_code(instrs)
-        while (!(instrs[this.PC].tag === 'DONE')) {
+        while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
             // console.log([instrs[this.PC]]) 
             process.stdout.write("PC: " + this.PC + ": ")
-            console.log(instrs[this.PC])
+            console.log(this.instrs[this.PC])
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
-            const instr = instrs[this.PC++]
+            const instr = this.instrs[this.PC++]
             this.microcode[instr.tag](instr)
             // console.log("OS: ");
             // this.OS.map((e, i) => {

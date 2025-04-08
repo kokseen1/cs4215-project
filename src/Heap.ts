@@ -1,8 +1,10 @@
 import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
 
 export class Heap {
+
     private builtins
     private constants
+
     constructor(heapsize_words, builtins, constants) {
         this.builtins = builtins;
         this.constants = constants;
@@ -77,10 +79,12 @@ export class Heap {
 
     // private HEAPBOTTOM = 0
 
-    // const free_node = v => {
-    //     heap_set(v, free)
-    //     free = v
-    // }
+    public free_node = (addr) => {
+        // point the new node to the head of the free list
+        this.heap_set(addr, this.free)
+        // set it as the new head
+        this.free = addr
+    }
 
     // const sweep = () => {
     //     let v = HEAPBOTTOM
@@ -134,12 +138,14 @@ export class Heap {
         // }
         // a value of -1 in free indicates the
         // end of the free list
-        // if (free === -1) {
-        //     mark_sweep()
-        // }
+        if (this.free === -1) {
+            // mark_sweep()
+            error("Ran out of memory")
+        }
         const address = this.free
-        // this.free = this.heap_get(this.free)
-        this.free += size
+        // get address of next free node
+        this.free = this.heap_get(this.free)
+        // this.free += size
         this.HEAP.setInt8(address * this.word_size, tag)
         this.HEAP.setUint16(address * this.word_size +
             this.size_offset,
@@ -164,10 +170,11 @@ export class Heap {
 
     private heap_set = (address, x) => {
         this.HEAP.setFloat64(address * this.word_size, x)
-        // try{
-        // console.log("allocating " + x + " (" + this.address_to_JS_value(address-1) + ") at [" + address + "]")
-        // } catch (e) {
-        // }
+        try {
+            console.log("setting " + x + " (" + this.address_to_JS_value(address - 1) + ") at [" + address + "]")
+        } catch (e) {
+            console.log("setting " + x + " (" + this.address_to_JS_value(address) + ") at [" + address + "]")
+        }
     }
 
     // child index starts at 0
@@ -318,7 +325,7 @@ export class Heap {
         this.heap_set_byte_at_offset(address, 1, arity)
         this.heap_set_2_bytes_at_offset(address, 2, pc)
         this.heap_set(address + 1, env)
-        console.log("allocating <closure:pc:" + pc + "> at [" + address + "]")
+        // console.log("allocating <closure:pc:" + pc + "> at [" + address + "]")
         return address
     }
 
@@ -448,17 +455,17 @@ export class Heap {
 
     // for debuggging: display environment
     public heap_Environment_display = env_address => {
-            const size = this.heap_get_number_of_children(
-                             env_address)
-            // display("", "Environment:")
-            display(size, "environment size:")
-            for (let i = 0; i < size; i++) {
-                console.log("==========")
-                display(i, "frame index:")
-                const frame = this.heap_get_child(env_address, i)
-                this.heap_Frame_display(frame)
-            }
+        const size = this.heap_get_number_of_children(
+            env_address)
+        // display("", "Environment:")
+        display(size, "environment size:")
+        for (let i = 0; i < size; i++) {
+            console.log("==========")
+            display(i, "frame index:")
+            const frame = this.heap_get_child(env_address, i)
+            this.heap_Frame_display(frame)
         }
+    }
 
     // pair
     // [1 byte tag, 4 bytes unused, 
@@ -482,7 +489,7 @@ export class Heap {
 
     private heap_allocate_Number = n => {
         const number_address = this.heap_allocate(this.Number_tag, 2)
-        console.log("allocating " + n + " at [" + number_address + "]")
+        // console.log("allocating " + n + " at [" + number_address + "]")
         this.heap_set(number_address + 1, n)
         return number_address
     }
@@ -512,9 +519,13 @@ export class Heap {
                             //     ]
                             : this.is_Closure(x)
                                 ? "<closure>"
-                                : this.is_Builtin(x)
-                                    ? "<builtin>"
-                                    : "unknown word tag: " + this.word_to_string(x)
+                                : this.is_Blockframe(x)
+                                    ? "<blockframe>"
+                                    : this.is_Callframe(x)
+                                        ? "<callframe>"
+                                        : this.is_Builtin(x)
+                                            ? "<builtin>"
+                                            : "unknown word tag: " + this.word_to_string(x)
 
     public JS_value_to_address = x =>
         is_boolean(x)

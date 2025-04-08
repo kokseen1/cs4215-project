@@ -364,6 +364,7 @@ export class Compiler {
             return this.instrs[this.wc++] = { tag: "LDC", val: undefined }
         let first = true
         for (let comp of seq) {
+            // insert POP instructions in-between seq statements
             first ? first = false
                 : this.instrs[this.wc++] = { tag: 'POP' }
             this.compile(comp, ce)
