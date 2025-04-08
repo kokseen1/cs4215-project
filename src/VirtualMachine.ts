@@ -13,13 +13,17 @@ export class VirtualMachine {
         this.init_builtins()
     }
 
-    private free_variables = (to_free) => {
-        for (const pos of to_free) {
+    private free = (addr) => {
+        const val = this.heap.address_to_JS_value(addr);
+        console.log("freeing " + val + " from [" + addr + "]");
+        // TODO: implement heap free function
+        // Do not free literals such as True, False
+    }
+
+    private free_variables = (positions) => {
+        for (const pos of positions) {
             const addr = this.heap.heap_get_Environment_value(this.E, pos);
-            const val = this.heap.address_to_JS_value(addr);
-            console.log("freeing " + val + " from [" + addr + "]");
-            // TODO: implement heap free function
-            // Do not free literals such as True, False
+            this.free(addr)
         }
     }
 
@@ -56,6 +60,11 @@ export class VirtualMachine {
             instr => {
                 const to_free = instr.to_free;
                 this.free_variables(to_free.map(x => x.pos));
+            },
+        DROP_POP:
+            instr => {
+                // pop from the OS and free the value
+                this.free(this.OS.pop())
             },
         EXIT_SCOPE:
             instr =>

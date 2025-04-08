@@ -318,6 +318,7 @@ export class Heap {
         this.heap_set_byte_at_offset(address, 1, arity)
         this.heap_set_2_bytes_at_offset(address, 2, pc)
         this.heap_set(address + 1, env)
+        console.log("allocating <closure:pc:" + pc + "> at [" + address + "]")
         return address
     }
 

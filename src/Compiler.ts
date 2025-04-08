@@ -53,7 +53,7 @@ export class Compiler {
             ? x
             : typeof x === 'object' // let, fun, and param types will store entire comp object
                 ? x.sym || error("Symbol is undefined")
-                : error("Error: cannot get symbol for "+x)
+                : error("Error: cannot get symbol for " + x)
 
     // returns the 0-based index of the symbol in the frame
     private get_value_index = (frame: any[], x: string) => {
@@ -65,7 +65,7 @@ export class Compiler {
         return -1;
     }
 
-    private gain_ownership = (ce, comp) => {
+    private gain_ownership = (comp, ce) => {
         if (comp.ref === true)
             error("Reference cannot gain ownership")
         const sym = this.get_symbol(comp)
@@ -89,11 +89,11 @@ export class Compiler {
         // TODO: ensure working for recursive nested binop
         const frst = comp.frst;
         const scnd = comp.scnd;
-        this.lose_ownership(ce, frst);
-        this.lose_ownership(ce, scnd);
+        this.lose_ownership(frst, ce);
+        this.lose_ownership(scnd, ce);
     }
 
-    private lose_ownership = (ce, comp) => {
+    private lose_ownership = (comp, ce) => {
         switch (comp.tag) {
             case 'nam':
             case 'fun':
@@ -107,7 +107,7 @@ export class Compiler {
                 break;
             case 'lit': // cases such as 'lit' do not need to lose ownership
                 break;
-            default: 
+            default:
                 break;
         }
     }
@@ -123,10 +123,10 @@ export class Compiler {
         // only move for valid types (nam, fun) but not (lit)
 
         // lose first then gain back, to handle `x = x - 1;`
-        this.lose_ownership(ce, from)
-        this.gain_ownership(ce, to)
+        this.lose_ownership(from, ce)
+        this.gain_ownership(to, ce)
         console.log("moved owner from " +
-            (from.val || from.sym) + " ("+from.tag+") to " + this.get_symbol(to))
+            (from.val || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
     }
 
     private compile_comp = {
@@ -149,8 +149,8 @@ export class Compiler {
                 // might gain back later in seq if it is just a nam statement (e.g. a;)
                 // lose ownership for any non-reference
                 // if (comp.ref !== true)
-                    // pass ownership to function parameters
-                    // this.lose_ownership(ce, comp)
+                // pass ownership to function parameters
+                // this.lose_ownership(comp, ce)
                 this.instrs[this.wc++] = {
                     tag: "LD",
                     sym: comp.sym,
@@ -216,6 +216,7 @@ export class Compiler {
                 this.compile(comp.fun, ce)
                 for (let arg of comp.args) {
                     this.compile(arg, ce)
+                    this.lose_ownership(arg, ce)
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
             },
@@ -263,17 +264,25 @@ export class Compiler {
                 this.instrs[this.wc++] = goto_instruction
                 this.ce_size_bef_fun = ce.length;
                 // extend compile-time environment
-                const prms = comp.prms.map(p =>
-                    // take ownership if not borrowing
-                    this.set_ownership(p, p.type.ref === false))
                 const extended_ce = this.compile_time_environment_extend(
-                    prms, ce);
+                    comp.prms, ce);
+                for (const prm of comp.prms) {
+                    // gain ownership if not borrowing
+                    if (prm.type.ref !== true)
+                        this.gain_ownership(prm, extended_ce)
+                }
                 this.compile(comp.body, extended_ce)
-                // pprint(extended_ce)
+
                 const drop_instr = this.instrs[this.wc - 2];
                 // update DROP instruction with function parameters
+                // assumes that all functions are blocks
                 drop_instr.to_free =
                     drop_instr.to_free.concat(this.get_droppable_positions(ce.length, extended_ce))
+
+                // make use of ret generating DROP
+                // this.compile({ tag: 'ret', expr: { tag: 'lit', val: undefined } }, extended_ce)
+
+                // alternatively handled by manually compiling a ret
                 this.instrs[this.wc++] = { tag: 'LDC', val: undefined }
                 this.instrs[this.wc++] = { tag: 'RESET' }
                 goto_instruction.addr = this.wc;
@@ -292,10 +301,9 @@ export class Compiler {
             },
         ret:
             (comp, ce) => {
-                // if (comp.expr.tag === 'nam') {
-                // lose ownership, pass to function application assignee
-                // }
                 this.compile(comp.expr, ce)
+                // lose ownership, pass to caller
+                this.lose_ownership(comp.expr, ce)
                 this.generate_drop_instr(this.ce_size_bef_fun, ce);
                 if (comp.expr.tag === 'app') {
                     // tail call: turn CALL into TAILCALL
@@ -360,14 +368,19 @@ export class Compiler {
                 : this.instrs[this.wc++] = { tag: 'POP' }
             this.compile(comp, ce)
 
-            // if (['nam', 'app'].includes(comp.tag)) 
-            // {
+            if (['app'].includes(comp.tag)) {
+                // free function application statements without assignments
+                this.instrs[this.wc++] = { tag: 'DROP_POP' }
+            }
+
+            // if (['nam', 'app'].includes(comp.tag)) {
             //     // gain back ownership as it is not moved anywhere
             //     // TODO: handle other expressions like binop
-            //     this.gain_ownership(ce,
+            //     this.gain_ownership(
             //         comp.tag === 'app'
             //             ? comp.fun // use symbol of function definition
-            //             : comp)
+            //             : comp,
+            //         ce)
             // }
         }
     }
