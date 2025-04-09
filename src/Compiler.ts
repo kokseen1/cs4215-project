@@ -241,6 +241,10 @@ export class Compiler {
                         ce, comp.sym)
                 }
                 this.move_ownership(ce, comp.expr, comp);
+                // TODO: check if type is copyable (only ints should be copied)
+                // include inferred types in literals
+                // move only if not copyable (also move builtin literals)
+                // more specifically, do not lose ownership if copyable
                 // pprint(ce)
             },
         const:
