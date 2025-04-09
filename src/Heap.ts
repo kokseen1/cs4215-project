@@ -170,11 +170,11 @@ export class Heap {
 
     private heap_set = (address, x) => {
         this.HEAP.setFloat64(address * this.word_size, x)
-        try {
-            console.log("setting " + x + " (" + this.address_to_JS_value(address - 1) + ") at [" + address + "]")
-        } catch (e) {
-            console.log("setting " + x + " (" + this.address_to_JS_value(address) + ") at [" + address + "]")
-        }
+        // try {
+        //     console.log("setting " + x + " (" + this.address_to_JS_value(address - 1) + ") at [" + address + "]")
+        // } catch (e) {
+        //     console.log("setting " + x + " (" + this.address_to_JS_value(address) + ") at [" + address + "]")
+        // }
     }
 
     // child index starts at 0

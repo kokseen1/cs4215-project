@@ -18,7 +18,7 @@ export class VirtualMachine {
         const val = this.heap.address_to_JS_value(addr);
         console.log("freeing " + val + " from [" + addr + "]");
         // Do not free literals such as True, False
-        this.heap.free_node(addr)
+        // this.heap.free_node(addr)
     }
 
     private free_variables = (positions) => {

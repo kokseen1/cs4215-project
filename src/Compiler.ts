@@ -75,8 +75,8 @@ export class Compiler {
     }
 
     private basic_lose = (ce, comp) => {
-        if (comp.ref === true)
-            error("Reference cannot lose ownership")
+        // if (comp.ref === true)
+        //     error("Reference cannot lose ownership")
         const sym = this.get_symbol(comp)
         const ctv = this.get_compile_time_value(ce, sym);
         if (ctv.owner === false)
