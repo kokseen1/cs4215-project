@@ -126,7 +126,7 @@ export class Compiler {
         this.lose_ownership(from, ce)
         this.gain_ownership(to, ce)
         console.log("moved owner from " +
-            (from.val || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
+            (from.val || from.fun.sym || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
     }
 
     private compile_comp = {
