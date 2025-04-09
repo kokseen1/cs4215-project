@@ -29,8 +29,8 @@ type:
 	| 'f64'
 	| 'bool'
 	| 'String'
-	| REF type
 	| REF MUT type
+	| REF type
 	| 'Box' '<' type '>'
 	| 'Rc' '<' type '>';
 
@@ -60,8 +60,8 @@ expression:
 	| expression op = ('==' | '!=' | '<' | '>' | '<=' | '>=') expression	# Compare
 	| expression op = ('&&' | '||') expression								# Logical
 	| ID '(' (argList)? ')'													# FunctionCall
-	| REF expression														# Reference
 	| REF MUT expression													# MutableReference
+	| REF expression														# Reference
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp

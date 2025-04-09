@@ -1,6 +1,6 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
@@ -113,6 +113,14 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             pred: this.visit(pred),
             body: this.visit(body)
         };
+    }
+
+    visitMutableReference(ctx: MutableReferenceContext) {
+        const expr = ctx.expression();
+        const nam = this.visit(expr); // assume expression can only be Id
+        nam.ref = true;
+        nam.mut = true;
+        return nam
     }
 
     visitReference(ctx: ReferenceContext) {
