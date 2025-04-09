@@ -90,6 +90,13 @@ export class VirtualMachine {
         ASSIGN:
             instr =>
                 this.heap.heap_set_Environment_value(this.E, instr.pos, peek(this.OS, 0)),
+        ASSIGN_COPY:
+            instr =>{
+                const addr = peek(this.OS, 0);
+                const JS_value = this.heap.address_to_JS_value(addr);
+                const copy_addr = this.heap.JS_value_to_address(JS_value);
+                this.heap.heap_set_Environment_value(this.E, instr.pos, copy_addr);
+            },
         LDF:
             instr => {
                 const closure_address =
