@@ -61,16 +61,16 @@ export class VirtualMachine {
             instr => {
                 // TOOD: more reliable way to check
                 // dont pop if it is the last value-producing statement
-                // if (this.PC + 2 >= this.instrs.length)
-                //     return
+                if (this.PC + 2 >= this.instrs.length)
+                    return
                 const to_free = instr.to_free;
                 this.free_variables(to_free.map(x => x.pos));
             },
         DROP_POP:
             instr => {
                 // dont pop if it is the last value-producing statement
-                // if (this.PC + 3 >= this.instrs.length)
-                //     return
+                if (this.PC + 3 >= this.instrs.length)
+                    return
                 // pop from the OS and free the value
                 this.free(this.OS.pop())
             },
