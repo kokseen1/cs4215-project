@@ -1,4 +1,4 @@
-import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null } from './Utils';
+import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null, pprint } from './Utils';
 
 export class TypeChecker {
     constructor() {}
@@ -83,7 +83,7 @@ export class TypeChecker {
 
     // returns `void` if type is unspecified
     private get_type = (type_info) => {
-        return type_info.type
+        return typeof type_info === "object" && "type" in type_info ? type_info.type : type_info
     }
 
     private lookup_field = (field, x, e) => {
@@ -104,7 +104,7 @@ export class TypeChecker {
 
     private iterate_type_environment = (te) => {
         if (head(te).hasOwnProperty("undefined")) { return }
-        console.log(head(te))
+        pprint(head(te))
         return this.iterate_type_environment(tail(te))
     }
 
@@ -185,7 +185,7 @@ export class TypeChecker {
             (comp, te) => {
                 const extended_te = this.extend_type_environment(
                                 comp.prms,
-                                comp.type.args, // CHANGE THIS
+                                comp.type.args,
                                 te)
                 const body_type = this.type_fun_body(comp.body, extended_te)
                 if (this.equal_type(body_type, comp.type.res)) {
@@ -328,13 +328,32 @@ export class TypeChecker {
                 if ("stmts" in comp.body) {
                     decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
                 }
-
                 let extended_te = this.extend_type_environment(
                                 decls.map(comp => comp.sym),
-                                decls.map(comp => ({ "type": this.get_type(comp.type) })),
+                                decls.map(comp => {
+                                    if (comp.tag === "fun") {
+                                        /* type: {
+                                            params: [  // equivalent to LHS of declaration
+                                                { mut: false, ref: false, type: 'i32' },
+                                                { mut: false, ref: false, type: 'bool' }
+                                            ],
+                                            ret: 'void'
+                                        } */
+
+                                        // handle params types declared as references (i.e. can borrow)
+                                        let params = comp.prms.map(({ "type": { tag, ...rest } }) => rest)
+                                                              .map(p => ({ ...p, "type": this.get_type(p.type) }))
+                                        pprint(params)
+                                        return { "type": {
+                                            "params": params,
+                                            "ret": this.get_type(comp.retType)
+                                        }}
+                                        
+                                    }
+                                    return { "type": this.get_type(comp.type) }
+                                }),
                                 te)
                 extended_te = this.deep_copy_type_environment(extended_te)
-
                 return this.type(comp.body, extended_te)
             },
         ret:
@@ -342,7 +361,7 @@ export class TypeChecker {
     }
 
     private type = (comp, te) => {
-        console.log(comp.tag)
+        //console.log(comp.tag)
         return this.type_comp[comp.tag](comp, te)
     }
 

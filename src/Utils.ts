@@ -23,7 +23,6 @@ export const display = (...args) => {
     }
 };
 
-
 export const is_number = (x) =>
     typeof x === 'number'
 
