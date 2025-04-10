@@ -16,7 +16,7 @@ export class VirtualMachine {
 
     private free = (addr) => {
         const val = this.heap.address_to_JS_value(addr);
-        console.log("freeing " + val + " from [" + addr + "]");
+        //console.log("freeing " + val + " from [" + addr + "]");
         // Do not free literals such as True, False
         // this.heap.free_node(addr)
     }
@@ -245,8 +245,8 @@ export class VirtualMachine {
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
             // console.log([instrs[this.PC]]) 
-            process.stdout.write("PC: " + this.PC + ": ")
-            console.log(this.instrs[this.PC])
+            //process.stdout.write("PC: " + this.PC + ": ")
+            //console.log(this.instrs[this.PC])
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");

@@ -1,10 +1,10 @@
-let mut x = 5; // mutable variable
+let mut x = 5;
+{
+    let z = & mut x;
     {
-        let z = & mut x;
-        {
-            let a = & mut x; // this shld increment mutable_borrow_count for x!
-        }
+        let a = & mut x; // error here
     }
+}
 let y = & mut x;
 
 //fn f(a:i32, b:bool) {}
@@ -12,3 +12,7 @@ let y = & mut x;
 
 //fn f(a:i32) {}
 //f(true); // fails
+
+//enter_scope: rmb
+//exit_scope: forget
+//every blk do a deep copy?

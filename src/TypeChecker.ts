@@ -231,63 +231,58 @@ export class TypeChecker {
                     // handle borrowing
                     const borrow = comp.expr.ref
                     if (borrow) {
-                        let updated_te = this.deep_copy_type_environment(te)
-
                         const borrower = comp.sym
                         const owner = comp.expr.sym
                         const borrow_type = comp.expr.mut ? "mutable" : "immutable"
                         
-                        this.update_field("owner", borrower, owner, updated_te)
-                        this.update_field("borrow", borrower, borrow, updated_te)
-                            this.update_field("borrow_type", borrower, borrow_type, updated_te)
+                        this.update_field("owner", borrower, owner, te)
+                        this.update_field("borrow", borrower, borrow, te)
+                        this.update_field("borrow_type", borrower, borrow_type, te)
                         
                         // set count from undefined to 0 (if needed)
-                        if (this.lookup_field("mutable_borrow_count", owner, updated_te) === undefined) {
-                            this.update_field("mutable_borrow_count", owner, 0, updated_te)
+                        if (this.lookup_field("mutable_borrow_count", owner, te) === undefined) {
+                            this.update_field("mutable_borrow_count", owner, 0, te)
                         }
-                        if (this.lookup_field("immutable_borrow_count", owner, updated_te) === undefined) {
-                            this.update_field("immutable_borrow_count", owner, 0, updated_te)
+                        if (this.lookup_field("immutable_borrow_count", owner, te) === undefined) {
+                            this.update_field("immutable_borrow_count", owner, 0, te)
                         }
 
                         // handle owner
                         if (borrow_type === "mutable") {
 
                             // error if you try to mutable borrow, when there is already an existing mutable borrow
-                            if (this.lookup_field("mutable_borrow_count", owner, updated_te) === 1) {
+                            if (this.lookup_field("mutable_borrow_count", owner, te) === 1) {
                                 error("cannot borrow `" + owner + "` as mutable more than once at a time")
                             }
 
                             // error if you try to mutable borrow, when there is an immutable borrow
-                            if (this.lookup_field("immutable_borrow_count", owner, updated_te) > 0) {
+                            if (this.lookup_field("immutable_borrow_count", owner, te) > 0) {
                                 error("cannot borrow `" + owner + "` as mutable because it is also borrowed as immutable")
                             }
-
+                            
                             // error if you try to mutable borrow, an immutable var
-                            if (this.lookup_field("mut", owner, updated_te) === false) {
+                            if (this.lookup_field("mut", owner, te) === false) {
                                 error("cannot borrow `" + owner + "` as mutable, as it is not declared as mutable")
                             }
 
                             // error if you try to mutable borrow, as an immutable var
                             if (borrower.mut === false) {
-                                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutabl")
-                            }
+                                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
+                            }                            
 
-                            this.update_field("mutable_borrow_count", owner, 1, updated_te) // allow mutable borrow
+                            this.update_field("mutable_borrow_count", owner, 1, te) // allow mutable borrow
                         } else {
 
                             // error if you try to immutable borrow, when there is an mutable borrow
-                            if (this.lookup_field("mutable_borrow_count", owner, updated_te) > 0) {
+                            if (this.lookup_field("mutable_borrow_count", owner, te) > 0) {
                                 error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
                             }
 
                             // increment immutable borrow count by 1
                             this.update_field("immutable_borrow_count", owner, 
-                                this.lookup_field("immutable_borrow_count", owner, updated_te) + 1, 
-                                updated_te)
+                                this.lookup_field("immutable_borrow_count", owner, te) + 1, 
+                                te)
                         }
-                        
-                        this.iterate_type_environment(updated_te)
-                        console.log("----------------------------------")
                     }
                     return "undefined"
                 } else {
@@ -334,10 +329,12 @@ export class TypeChecker {
                     decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
                 }
 
-                const extended_te = this.extend_type_environment(
+                let extended_te = this.extend_type_environment(
                                 decls.map(comp => comp.sym),
                                 decls.map(comp => ({ "type": this.get_type(comp.type) })),
                                 te)
+                extended_te = this.deep_copy_type_environment(extended_te)
+
                 return this.type(comp.body, extended_te)
             },
         ret:
@@ -345,7 +342,7 @@ export class TypeChecker {
     }
 
     private type = (comp, te) => {
-        //console.log(comp.tag)
+        console.log(comp.tag)
         return this.type_comp[comp.tag](comp, te)
     }
 

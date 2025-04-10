@@ -49,10 +49,10 @@ export class SimpleLangEvaluator {
 
         // Compile the program
         const instrs = this.compiler.compile_program(prog);
-        instrs.map((e, i) => {
+        /* instrs.map((e, i) => {
             process.stdout.write(i + ": ")
             console.dir(e, { depth: null });
-        })
+        }) */
 
         // Evaluate the instructions
         const result = this.vm.run(instrs);
