@@ -133,12 +133,12 @@ export class TypeChecker {
     // functions for each component tag
     private type_comp = {
         lit:
-            (comp, te) => is_number(comp.val) 
+            (comp, te) => is_number(comp.val)
                         ? "i32"
                         : is_boolean(comp.val)
                         ? "bool"
-                        : is_undefined(comp.val)
-                        ? "undefined"
+                        : is_string(comp.val)
+                        ? "String"
                         : error("unknown literal: " + comp.val),
         nam:
             (comp, te) => this.lookup_field("type", comp.sym, te),
@@ -183,39 +183,42 @@ export class TypeChecker {
             },
         fun:
             (comp, te) => {
-                const extended_te = this.extend_type_environment(
-                                comp.prms,
-                                comp.type.args,
+                const func_type = this.lookup_field("type", comp.sym, te)
+                let extended_te = this.extend_type_environment(
+                                comp.prms.map(p => p.sym),
+                                func_type.params,
                                 te)
+                extended_te = this.deep_copy_type_environment(extended_te)
                 const body_type = this.type_fun_body(comp.body, extended_te)
-                if (this.equal_type(body_type, comp.type.res)) {
-                    return "undefined"
+                if (this.equal_type(body_type, func_type.ret)) {
+                    return "void"
                 } else {
                     error("type error in function declaration; " +
-                            "declared return type: " +
-                            this.unparse_type(comp.type.res) + ", " +
-                            "actual return type: " + 
-                            this.unparse_type(body_type))
+                            "declared return type: " + this.unparse_types(func_type.ret) + ", " +
+                            "actual return type: " + this.unparse_types(body_type))
                 }
             },
         app:
             (comp, te) => {
-                const fun_type = this.type(comp.fun, te)
-                if (fun_type.tag !== "fun") 
-                    error("type error in application; function " +
-                            "expression must have function type; " +
-                            "actual type: " + this.unparse_type(fun_type))
-                const expected_arg_types = fun_type.args
-                const actual_arg_types = comp.args.map(e => this.type(e, te))
-                if (this.equal_types(actual_arg_types, expected_arg_types)) {
-                    return fun_type.res
-                } else {
-                    error("type error in application; " +
-                        "expected argument types: " + 
-                        this.unparse_types(expected_arg_types) + ", " +
-                        "actual argument types: " + 
-                        this.unparse_types(actual_arg_types))
+                const func_type = this.type(comp.fun, te)
+                const param_types = func_type.params.map(p => p.type)
+                const params_borrow_type = func_type.params.map(p => p.borrow).map(p => p ? "&" : "")
+                const merged_param_types = param_types.map((item, index) => item + params_borrow_type[index]);
+
+                const arg_types = comp.args.map(e => this.type(e, te))
+                const args_borrow_type = comp.args.map(arg => "sym" in arg ? arg.ref : false).map(p => p ? "&" : "")
+                const merged_arg_types = arg_types.map((item, index) => item + args_borrow_type[index]);
+                
+                console.log(func_type.params)
+                console.log(comp.args)
+
+                // check type
+                if (!this.equal_types(merged_param_types, merged_arg_types)) {
+                    error("type error in application:\n" +
+                        "expected parameter types: [ " + this.unparse_types(merged_param_types) + " ]\n" +
+                        "actual argument types: [ " + this.unparse_types(merged_arg_types) + " ]")
                 }
+                return func_type.ret
             },
         let:
             (comp, te) => {
@@ -283,55 +286,53 @@ export class TypeChecker {
                                 te)
                         }
                     }
-                    return "undefined"
+                    return "void"
                 } else {
                     error("type error in declaration; " + 
-                            "expected " +
-                            this.unparse_type(declared_type) + ", " +
-                            "found " + 
-                            this.unparse_type(actual_type))
+                            "expected " + this.unparse_types(declared_type) + ", " +
+                            "found " + this.unparse_types(actual_type))
                 }
             },
         assmt:
             (comp, te) => {
                 const declared_type = this.lookup_field("type", comp.sym, te)
                 const actual_type = this.type(comp.expr, te)
-                
                 if (this.lookup_field("mut", comp.sym, te) !== true) {
+                    if (this.lookup_field("param", comp.sym, te) === true) {
+                        error("cannot assign to immutable argument `" + comp.sym + "`")
+                    }
                     error("cannot assign twice to immutable variable `" + comp.sym + "`")
                 }
 
                 if (this.equal_type(actual_type, declared_type)) {
-                    return "undefined"
+                    return "void"
                 } else {
                     error("type error in assignment; " + 
-                            "expected " +
-                            this.unparse_type(declared_type) + ", " +
-                            "found " + 
-                            this.unparse_type(actual_type))
+                            "expected " + declared_type + ", " +
+                            "found " + actual_type)
                 }
-                return "undefined"
+                return "void"
             },
         seq: 
             (comp, te) => {
                 const component_types = comp.stmts.map(
                                             s => this.type(s, te))
                 return component_types.length === 0
-                    ? "undefined"
+                    ? "void"
                     : component_types[component_types.length - 1]
             },
         blk:
             (comp, te) => {
-                // scan out declarations
-                let decls = [comp.body] // handle single-stmt programs
-                if ("stmts" in comp.body) {
-                    decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
-                }
+                // scan out declarations (handle single-stmt programs too)
+                let decls = ("stmts" in comp.body ? comp.body.stmts : [comp.body])
+                                .filter(comp => comp.tag === "let" || comp.tag === "fun")
+
                 let extended_te = this.extend_type_environment(
                                 decls.map(comp => comp.sym),
                                 decls.map(comp => {
                                     if (comp.tag === "fun") {
-                                        /* type: {
+                                        /* map fn `f` to its param types `i32` & `bool` and ret type `void`
+                                        type: {
                                             params: [  // equivalent to LHS of declaration
                                                 { mut: false, ref: false, type: 'i32' },
                                                 { mut: false, ref: false, type: 'bool' }
@@ -341,17 +342,18 @@ export class TypeChecker {
 
                                         // handle params types declared as references (i.e. can borrow)
                                         // handle mut, which is on LHS (instead of RHS) of func signature
-                                        let params = comp.prms.map(({ mut: mut, type: { tag, ...fields } }) => ({
+                                        let params = comp.prms.map(({ mut: mut, type: { tag, ref, ...fields } }) => ({
                                                         ...fields,
                                                         mut: mut,
-                                                        type: this.get_type(fields.type)
+                                                        borrow: ref,
+                                                        type: this.get_type(fields.type),
+                                                        param: true
                                                     }))
 
                                         return { "type": {
                                             "params": params,
                                             "ret": this.get_type(comp.retType)
                                         }}
-                                        
                                     }
                                     return { "type": this.get_type(comp.type) }
                                 }),
@@ -360,7 +362,7 @@ export class TypeChecker {
                 return this.type(comp.body, extended_te)
             },
         ret:
-            (comp, te) => comp
+            (comp, te) => this.type(comp.expr, te)
     }
 
     private type = (comp, te) => {
@@ -395,26 +397,42 @@ export class TypeChecker {
             (comp, te) => {
                 for (const stmt of comp.stmts) {
                     const stmt_type = this.type_fun_body(stmt, te)
-                    if (this.equal_type(stmt_type, "undefined")) {
+                    if (this.equal_type(stmt_type, "void")) {
                     } else {
                         return stmt_type
                     }
                 }
-                return "undefined"
+                return "void"
             },
         blk:
             (comp, te) => {
-                // scan out declarations
-                let decls = [comp.body] // handle single-stmt programs
-                if ("stmts" in comp.body) {
-                    decls = comp.body.stmts.filter(comp => comp.tag === "let" || comp.tag === "fun")
-                }
-
-                const extended_te = this.extend_type_environment(
+                // scan out declarations (handle single-stmt programs too)
+                let decls = ("stmts" in comp.body ? comp.body.stmts : [comp.body])
+                                .filter(comp => comp.tag === "let" || comp.tag === "fun")
+                
+                let extended_te = this.extend_type_environment(
                                 decls.map(comp => comp.sym),
-                                decls.map(comp => ({ "type": this.get_type(comp.type) })),
-                                te) 
-                return this.type_fun_body(comp.body, extended_te)
+                                decls.map(comp => {
+                                    if (comp.tag === "fun") {
+                                        // handle params types declared as references (i.e. can borrow)
+                                        // handle mut, which is on LHS (instead of RHS) of func signature
+                                        let params = comp.prms.map(({ mut: mut, type: { tag, ref, ...fields } }) => ({
+                                                        ...fields,
+                                                        mut: mut,
+                                                        borrow: ref,
+                                                        type: this.get_type(fields.type)
+                                                    }))
+
+                                        return { "type": {
+                                            "params": params,
+                                            "ret": this.get_type(comp.retType)
+                                        }}
+                                    }
+                                    return { "type": this.get_type(comp.type) }
+                                }),
+                                te)
+                extended_te = this.deep_copy_type_environment(extended_te)
+                return this.type(comp.body, extended_te)
             },
         ret:
             (comp, te) => this.type(comp.expr, te)
@@ -426,7 +444,7 @@ export class TypeChecker {
             return handler(comp, te)
         } else {
             this.type(comp, te)
-            return "undefined"
+            return "void"
         }
     }
 
@@ -434,6 +452,7 @@ export class TypeChecker {
     // after initializing wc and instrs
     public type_program = (program) => {
         this.type(program, this.global_type_environment)
+        console.log("[[[SUCCESS]]]")
         return true
     };
 }
