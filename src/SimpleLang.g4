@@ -68,7 +68,7 @@ expression:
 	| '(' expression ')'													# Parens
 	| BOOL																	# Bool
 	| INT																	# Int
-	| STRING																# Str
+	| 'String' '::' 'from(' STRING ')'										# Str
 	| ID																	# Id;
 
 argList: expression (',' expression)*;
