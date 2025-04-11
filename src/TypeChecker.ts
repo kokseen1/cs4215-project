@@ -223,7 +223,6 @@ export class TypeChecker {
                 const actual_type = this.type(comp.expr, te)
                 
                 if (declared_type === "void" || this.equal_type(actual_type, declared_type)) { 
-                    
                     // update type to actual type, if declared type is void
                     this.update_field("type", comp.sym, actual_type, te)
                     this.update_field("mut", comp.sym, comp.mut, te)
@@ -246,7 +245,7 @@ export class TypeChecker {
                         if (this.lookup_field("immutable_borrow_count", owner, te) === undefined) {
                             this.update_field("immutable_borrow_count", owner, 0, te)
                         }
-
+                        
                         // handle owner
                         if (borrow_type === "mutable") {
 
@@ -341,9 +340,13 @@ export class TypeChecker {
                                         } */
 
                                         // handle params types declared as references (i.e. can borrow)
-                                        let params = comp.prms.map(({ "type": { tag, ...rest } }) => rest)
-                                                              .map(p => ({ ...p, "type": this.get_type(p.type) }))
-                                        pprint(params)
+                                        // handle mut, which is on LHS (instead of RHS) of func signature
+                                        let params = comp.prms.map(({ mut: mut, type: { tag, ...fields } }) => ({
+                                                        ...fields,
+                                                        mut: mut,
+                                                        type: this.get_type(fields.type)
+                                                    }))
+
                                         return { "type": {
                                             "params": params,
                                             "ret": this.get_type(comp.retType)

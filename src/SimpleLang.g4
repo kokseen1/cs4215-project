@@ -22,7 +22,7 @@ assign: ID '=' expression ';';
 funcDef: 'fn' ID '(' (paramList)? ')' ('->' type)? block;
 
 paramList: param (',' param)*;
-param: ID ':' type;
+param: MUT? ID ':' type;
 
 type:
 	'i32'
