@@ -262,6 +262,11 @@ export class Compiler {
                     }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
+                pprint(comp)
+                if (has_move_trait(comp.fun.inferred_type)) {
+                    // free function application statements without assignments
+                    this.instrs[this.wc++] = { tag: 'DROP_POP' }
+                }
             },
         assmt:
             // store precomputed position info in ASSIGN instruction
@@ -292,9 +297,11 @@ export class Compiler {
                 this.ce_size_bef_fun = ce.length;
                 // extend compile-time environment
                 const extended_ce = this.compile_time_environment_extend(
-                    comp.prms, ce);
+                    comp.prms.map(this.make_cte_object), ce);
                 for (const prm of comp.prms) {
-                    if (has_move_trait(prm.type.type) && prm.type.ref !== true)
+                    const type = prm.type.type;
+                    this.set_cte_type(extended_ce, prm.sym, type);
+                    if (has_move_trait(type) && prm.type.ref !== true)
                         this.gain_ownership(extended_ce, prm)
                 }
                 this.compile(comp.body, extended_ce)
@@ -349,8 +356,11 @@ export class Compiler {
         ret:
             (comp, ce) => {
                 this.compile(comp.expr, ce)
-                // lose ownership, pass to caller
-                this.lose_ownership(ce, comp.expr)
+                const expr_type = comp.expr.inferred_type;
+                if (has_move_trait(expr_type)) {
+                    // lose ownership, pass to caller
+                    this.lose_ownership(ce, comp.expr)
+                }
                 this.generate_drop_instr(this.ce_size_bef_fun, ce);
                 if (comp.expr.tag === 'app') {
                     // tail call: turn CALL into TAILCALL
@@ -385,10 +395,6 @@ export class Compiler {
                 : this.instrs[this.wc++] = { tag: 'POP' }
             this.compile(comp, ce)
 
-            if (comp.tag === "app" && has_move_trait(comp.fun.inferred_type)) {
-                // free function application statements without assignments
-                this.instrs[this.wc++] = { tag: 'DROP_POP' }
-            }
         }
     }
 
