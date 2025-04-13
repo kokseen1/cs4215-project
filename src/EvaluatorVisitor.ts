@@ -219,10 +219,12 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
 
     visitParam(ctx: ParamContext) {
         const type = ctx.type();
+        const mut = ctx.MUT();
         const id = ctx.ID().getText();
         return {
             tag: "param",
             sym: id, // sym to ensure consistency in compile-time-env
+            mut: mut !== null,
             type: this.visit(type),
         }
     }
