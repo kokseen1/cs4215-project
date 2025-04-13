@@ -1,3 +1,4 @@
+import { merge } from 'antlr4ng';
 import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null, pprint } from './Utils';
 
 export class TypeChecker {
@@ -99,7 +100,35 @@ export class TypeChecker {
         ? error("unbound name: " + x)
         : head(e).hasOwnProperty(x)
         ? head(e)[x][field] = val
-        : this.update_field(field, x, val, tail(e));
+        : this.update_field(field, x, val, tail(e))
+    }
+
+    private lookup_function_field = (field, func_name, param_name, e) => {
+        return is_null(e)
+        ? error("unbound name: " + func_name)
+        : head(e).hasOwnProperty(func_name)
+        ? (
+            head(e)[func_name]["type"]["params"].forEach(p => {
+                if (p.sym === param_name) {
+                    return p[field]
+                }
+            })
+        )
+        : this.lookup_function_field(field, func_name, param_name, tail(e))
+    }
+
+    private update_function_field = (field, func_name, param_name, val, e) => {
+        return is_null(e)
+        ? error("unbound name: " + func_name)
+        : head(e).hasOwnProperty(func_name)
+        ? (
+            head(e)[func_name]["type"]["params"].forEach(p => {
+                if (p.sym === param_name) {
+                    p[field] = val;
+                }
+            })
+        )
+        : this.update_function_field(field, func_name, param_name, val, tail(e))
     }
 
     private iterate_type_environment = (te) => {
@@ -128,6 +157,54 @@ export class TypeChecker {
             new_frame[xs[i]] = ts[i]
         return pair(new_frame, e)
     }
+
+    private check_borrowing = (borrower, borrow_type, owner, te) => {
+        // set count from undefined to 0 (if needed)
+        if (this.lookup_field("mutable_borrow_count", owner, te) === undefined) {
+            this.update_field("mutable_borrow_count", owner, 0, te)
+        }
+        if (this.lookup_field("immutable_borrow_count", owner, te) === undefined) {
+            this.update_field("immutable_borrow_count", owner, 0, te)
+        }
+        
+        // handle owner
+        if (borrow_type === "mutable") {
+
+            // error if you try to mutable borrow, when there is already an existing mutable borrow
+            if (this.lookup_field("mutable_borrow_count", owner, te) === 1) {
+                error("cannot borrow `" + owner + "` as mutable more than once at a time")
+            }
+
+            // error if you try to mutable borrow, when there is an immutable borrow
+            if (this.lookup_field("immutable_borrow_count", owner, te) > 0) {
+                error("cannot borrow `" + owner + "` as mutable because it is also borrowed as immutable")
+            }
+            
+            // error if you try to mutable borrow, an immutable var
+            if (this.lookup_field("mut", owner, te) === false) {
+                error("cannot borrow `" + owner + "` as mutable, as it is not declared as mutable")
+            }
+
+            // error if you try to mutable borrow, as an immutable var
+            if (borrower.mut === false) {
+                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
+            }                            
+
+            this.update_field("mutable_borrow_count", owner, 1, te) // allow mutable borrow
+        } else {
+
+            // error if you try to immutable borrow, when there is an mutable borrow
+            if (this.lookup_field("mutable_borrow_count", owner, te) > 0) {
+                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
+            }
+
+            // increment immutable borrow count by 1
+            this.update_field("immutable_borrow_count", owner, 
+                this.lookup_field("immutable_borrow_count", owner, te) + 1, 
+                te)
+        }
+    }
+
 
     // type_comp has the typing
     // functions for each component tag
@@ -200,21 +277,35 @@ export class TypeChecker {
             },
         app:
             (comp, te) => {
-                
-                // ADD BORROW CHECKING HERE !!
-
+                const func_name = comp.fun.sym
                 const func_type = this.type(comp.fun, te)
+                const params = func_type.params
+
+                // implement borrow checking for symbols that are passed to functions
+                te = this.deep_copy_type_environment(te)
+                comp.args.map((arg, i) => {
+                    const borrow = arg.ref
+                    if ("sym" in arg && borrow) {
+                        const owner = arg.sym
+                        const borrower = params[i].sym 
+                        const borrow_type = arg.mut ? "mutable" : "immutable"
+
+                        this.update_function_field("owner", func_name, borrower, owner, te)
+                        this.check_borrowing(borrower, borrow_type, owner, te)
+                    }
+                })
+
+                // check param types against arg types
                 const param_types = func_type.params.map(p => p.type)
                 const params_borrow_type = func_type.params.map(p => p.borrow).map(p => p ? "& " : "")
                 const params_mut_type = func_type.params.map(p => p.borrow_type).map(p => p === "mutable" ? "mut " : "")
                 const merged_param_types = param_types.map((item, i) => params_borrow_type[i] + params_mut_type[i] + item);
-                
+
                 const arg_types = comp.args.map(e => this.type(e, te))
                 const args_borrow_type = comp.args.map(arg => "sym" in arg ? arg.ref : false).map(p => p ? "& " : "")
                 const args_mut_type = comp.args.map(p => p.mut).map(p => p ? "mut " : "")
                 const merged_arg_types = arg_types.map((item, i) => args_borrow_type[i] + args_mut_type[i] + item);
                 
-                // check type
                 if (!this.equal_types(merged_param_types, merged_arg_types)) {
                     error("type error in application:\n" +
                         "expected parameter types: [ " + this.unparse_types(merged_param_types) + " ]\n" +
@@ -244,50 +335,7 @@ export class TypeChecker {
                         this.update_field("borrow", borrower, borrow, te)
                         this.update_field("borrow_type", borrower, borrow_type, te)
                         
-                        // set count from undefined to 0 (if needed)
-                        if (this.lookup_field("mutable_borrow_count", owner, te) === undefined) {
-                            this.update_field("mutable_borrow_count", owner, 0, te)
-                        }
-                        if (this.lookup_field("immutable_borrow_count", owner, te) === undefined) {
-                            this.update_field("immutable_borrow_count", owner, 0, te)
-                        }
-                        
-                        // handle owner
-                        if (borrow_type === "mutable") {
-
-                            // error if you try to mutable borrow, when there is already an existing mutable borrow
-                            if (this.lookup_field("mutable_borrow_count", owner, te) === 1) {
-                                error("cannot borrow `" + owner + "` as mutable more than once at a time")
-                            }
-
-                            // error if you try to mutable borrow, when there is an immutable borrow
-                            if (this.lookup_field("immutable_borrow_count", owner, te) > 0) {
-                                error("cannot borrow `" + owner + "` as mutable because it is also borrowed as immutable")
-                            }
-                            
-                            // error if you try to mutable borrow, an immutable var
-                            if (this.lookup_field("mut", owner, te) === false) {
-                                error("cannot borrow `" + owner + "` as mutable, as it is not declared as mutable")
-                            }
-
-                            // error if you try to mutable borrow, as an immutable var
-                            if (borrower.mut === false) {
-                                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
-                            }                            
-
-                            this.update_field("mutable_borrow_count", owner, 1, te) // allow mutable borrow
-                        } else {
-
-                            // error if you try to immutable borrow, when there is an mutable borrow
-                            if (this.lookup_field("mutable_borrow_count", owner, te) > 0) {
-                                error("cannot borrow `" + owner + "` as immutable because it is also borrowed as mutable")
-                            }
-
-                            // increment immutable borrow count by 1
-                            this.update_field("immutable_borrow_count", owner, 
-                                this.lookup_field("immutable_borrow_count", owner, te) + 1, 
-                                te)
-                        }
+                        this.check_borrowing(borrower, borrow_type, owner, te)
                     }
                     return "void"
                 } else {
@@ -346,9 +394,10 @@ export class TypeChecker {
                                         // handle params types declared as references (i.e. can borrow)
                                         // handle mut, which is on LHS (instead of RHS) of func signature
                                         let params = comp.prms.map(
-                                            ({ mut: outer_mut, type: { tag, ref, mut, ...fields } }) => {
+                                            ({ mut: outer_mut, sym: sym, type: { tag, ref, mut, ...fields } }) => {
                                                 return {
                                                     ...fields,
+                                                    sym: sym,
                                                     mut: outer_mut,
                                                     borrow: ref,
                                                     borrow_type: mut ? "mutable" : "immutable",
