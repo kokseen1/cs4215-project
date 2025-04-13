@@ -139,6 +139,8 @@ export class TypeChecker {
                         ? "bool"
                         : is_undefined(comp.val)
                         ? "undefined"
+                        : is_string(comp.val)
+                        ? "String"
                         : error("unknown literal: " + comp.val),
         nam:
             (comp, te) => this.lookup_field("type", comp.sym, te),
