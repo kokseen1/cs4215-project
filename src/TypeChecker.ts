@@ -335,7 +335,7 @@ export class TypeChecker {
             (comp, te) => comp
     }
 
-    public type = (comp, te) => {
+    private type = (comp, te) => {
         console.log(comp.tag)
         return this.type_comp[comp.tag](comp, te)
     }
