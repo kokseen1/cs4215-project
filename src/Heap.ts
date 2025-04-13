@@ -11,6 +11,7 @@ export class Heap {
         this.heap_size = heapsize_words
         this.free = 0
         this.HEAP = this.heap_make(heapsize_words);
+        this.stringPool = {};
 
         // initialize free list:
         // every free node carries the address
@@ -217,6 +218,12 @@ export class Heap {
         (address, offset) =>
             this.HEAP.getUint16(address * this.word_size + offset)
 
+    private heap_set_4_bytes_at_offset = (address, offset, value) =>
+        this.HEAP.setUint32(address * this.word_size + offset, value);
+
+    private heap_get_4_bytes_at_offset = (address, offset) =>
+        this.HEAP.getUint32(address * this.word_size + offset);
+
     // for debugging: return a string that shows the bits
     // of a given word
     private word_to_string = word => {
@@ -243,6 +250,7 @@ export class Heap {
     // in garbage collection: If the (signed) Int32 is
     // non-negative, the node has been forwarded already.
 
+    // Use uncommon numbers instead of 0 and 1 to prevent mis-identifying when printing
     private False_tag = 100
     private True_tag = 101
     private Number_tag = 2
@@ -256,6 +264,11 @@ export class Heap {
     private Environment_tag = 10 // 0000 1010
     private Pair_tag = 11
     private Builtin_tag = 12
+    private String_tag = 13; 
+
+    // Record<string, tuple(number, string)< where the key is the hash of the string
+    // and the value is a tuple of the address of the string and the string itself
+    private stringPool = {}; 
 
     // all values (including literals) are allocated on the heap.
 
@@ -377,6 +390,63 @@ export class Heap {
 
     public is_Callframe = address =>
         this.heap_get_tag(address) === this.Callframe_tag
+
+    // strings:
+    // [1 byte tag, 4 byte hash to stringPool,
+    // 2 bytes #children, 1 byte unused]
+    // Note: #children is 0
+
+    // Hash any string to a 32-bit unsigned integer
+    private hashString = (str) => {
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) + hash + char;
+            hash = hash & hash;
+        }
+        return hash >>> 0;
+    };
+
+    public is_String = (address) =>
+        this.heap_get_tag(address) === this.String_tag;
+
+    public heap_allocate_String = (string) => {
+        const hash = this.hashString(string);
+        const a = this.stringPool[hash];
+
+        if (a !== undefined) {
+            let i;
+            for (i = 0; i < a.length; i++) {
+                if (a[i].string === string)
+                    return a[i].address;
+            }
+            const address = this.heap_allocate(this.String_tag, 2);
+            this.heap_set_4_bytes_at_offset(address, 1, hash);
+            this.heap_set_2_bytes_at_offset(address, 5, i);
+            a[i] = { address, string };
+            return address;
+        }
+
+        const address = this.heap_allocate(this.String_tag, 2);
+        this.heap_set_4_bytes_at_offset(address, 1, hash);
+        this.heap_set_2_bytes_at_offset(address, 5, 0);
+
+        // Store {address, string} in the string pool under hash at index 0
+        this.stringPool[hash] = [{ address, string }];
+
+        return address;
+    };
+
+    private heap_get_string_hash = (address) =>
+        this.heap_get_4_bytes_at_offset(address, 1);
+
+    private heap_get_string_index = (address) =>
+        this.heap_get_2_bytes_at_offset(address, 5);
+
+    private heap_get_string = (address) =>
+        this.stringPool[this.heap_get_string_hash(address)]
+        [this.heap_get_string_index(address)]
+            .string;
 
     // environment frame
     // [1 byte tag, 4 bytes unused, 
@@ -512,6 +582,8 @@ export class Heap {
                         ? "<unassigned>"
                         : this.is_Null(x)
                             ? null
+                            : this.is_String(x)
+                            ? this.heap_get_string(x)
                             // : this.is_Pair(x)
                             // ? [
                             //     this.address_to_JS_value(this.heap_get_child(x, 0)),
@@ -536,6 +608,8 @@ export class Heap {
                     ? this.Undefined
                     : is_null(x)
                         ? this.Null
+                        : is_string(x)
+                        ? this.heap_allocate_String(x)
                         // : is_pair(x)
                         // ? this.heap_allocate_Pair(
                         //     this.JS_value_to_address(head(x)),
