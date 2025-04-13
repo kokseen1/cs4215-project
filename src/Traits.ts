@@ -8,8 +8,8 @@ export const Traits = {
     "String": TRAIT_MOVE
 }
 
-export const is_movable = (type) => 
+export const has_move_trait = (type) => 
     Traits[type] === TRAIT_MOVE;
 
-export const is_copyable = (type) =>
+export const has_copy_trait = (type) =>
     Traits[type] === TRAIT_COPY;
