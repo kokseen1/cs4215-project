@@ -1,4 +1,5 @@
-import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { has_copy_trait, has_move_trait, Traits } from './Traits';
+import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, lookup_type } from './Utils';
 import { SimpleLangParser } from "./parser/src/SimpleLangParser";
 
 export class Compiler {
@@ -6,12 +7,14 @@ export class Compiler {
     private wc = 0;
     private global_compile_environment
     private ce_size_bef_fun = -1;
+    private builtin_compile_frame
+    private constant_compile_frame
 
     constructor(builtins, constants) {
-        const builtin_compile_frame = Object.keys(builtins)
-        const constant_compile_frame = Object.keys(constants)
+        this.builtin_compile_frame = Object.keys(builtins)
+        this.constant_compile_frame = Object.keys(constants)
         this.global_compile_environment =
-            [builtin_compile_frame, constant_compile_frame]
+            [this.builtin_compile_frame, this.constant_compile_frame]
     }
 
     // ************************
@@ -65,9 +68,10 @@ export class Compiler {
         return push([...e], vs)
     }
 
-    private gain_ownership = (comp, ce) => {
-        if (comp.ref === true)
-            error("Reference cannot gain ownership")
+
+    private gain_ownership = (ce, comp) => {
+        // if (comp.ref === true)
+        //     error("Reference cannot gain ownership")
         const sym = this.get_symbol(comp)
         const ctv = this.get_compile_time_value(ce, sym);
         ctv.owner = true;
@@ -85,15 +89,25 @@ export class Compiler {
         console.log(sym + " lost ownership");
     }
 
+    private get_cte_type = (ce, sym) => {
+        const ctv = this.get_compile_time_value(ce, sym);
+        return ctv.type;
+    }
+
+    private set_cte_type = (ce, sym, type) => {
+        const ctv = this.get_compile_time_value(ce, sym);
+        ctv.type = type;
+    }
+
     private binop_lose = (ce, comp) => {
         // TODO: ensure working for recursive nested binop
         const frst = comp.frst;
         const scnd = comp.scnd;
-        this.lose_ownership(frst, ce);
-        this.lose_ownership(scnd, ce);
+        this.lose_ownership(ce, frst);
+        this.lose_ownership(ce, scnd);
     }
 
-    private lose_ownership = (comp, ce) => {
+    private lose_ownership = (ce, comp) => {
         switch (comp.tag) {
             case 'nam':
             case 'fun':
@@ -105,8 +119,7 @@ export class Compiler {
             case 'unop':
                 // TODO: lose for unop
                 break;
-            case 'lit': // cases such as 'lit' do not need to lose ownership
-                break;
+            // cases such as 'lit' do not need to lose ownership
             default:
                 break;
         }
@@ -123,8 +136,8 @@ export class Compiler {
         // only move for valid types (nam, fun) but not (lit)
 
         // lose first then gain back, to handle `x = x - 1;`
-        this.lose_ownership(from, ce)
-        this.gain_ownership(to, ce)
+        this.lose_ownership(ce, from)
+        this.gain_ownership(ce, to)
         console.log("moved owner from " +
             (from.val || from.fun?.sym || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
     }
@@ -132,7 +145,6 @@ export class Compiler {
     private get_droppable_positions = (ce_idx: number, ce) => {
         if (ce_idx === -1)
             error("Error: unable to get droppable positions")
-        pprint(ce)
         const positions = [];
         for (let i = ce_idx; i < ce.length; i++) {
             const frame = ce[i];
@@ -160,7 +172,6 @@ export class Compiler {
         this.instrs[this.wc++] = this.make_drop_instr(ce_idx, ce)
 
 
-
     private compile_comp = {
         lit:
             (comp, ce) => {
@@ -168,10 +179,16 @@ export class Compiler {
                     tag: "LDC",
                     val: comp.val
                 }
+                comp.inferred_type = lookup_type(comp.val);
             },
         nam:
             // store precomputed position information in LD instruction
             (comp, ce) => {
+                const ctv = this.get_compile_time_value(ce, comp.sym);
+                if (ctv.owner === false)
+                    error("Error: use of moved value " + comp.sym);
+                comp.inferred_type = ctv.type;
+
                 this.instrs[this.wc++] = {
                     tag: "LD",
                     sym: comp.sym,
@@ -235,8 +252,14 @@ export class Compiler {
         app:
             (comp, ce) => {
                 this.compile(comp.fun, ce)
+                comp.inferred_type = comp.fun.inferred_type
                 for (let arg of comp.args) {
                     this.compile(arg, ce)
+                    // don't lose ownership to builtins
+                    if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
+                        has_move_trait(arg.inferred_type)) {
+                        this.lose_ownership(ce, arg)
+                    }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
             },
@@ -249,6 +272,11 @@ export class Compiler {
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
+
+                const expr_type = comp.expr.inferred_type;
+                if (has_move_trait(expr_type)) {
+                    this.move_ownership(ce, comp.expr, comp);
+                }
             },
         lam:
             (comp, ce) => {
@@ -260,10 +288,23 @@ export class Compiler {
                 // jump over the body of the lambda expression
                 const goto_instruction: any = { tag: 'GOTO' }
                 this.instrs[this.wc++] = goto_instruction
+
+                this.ce_size_bef_fun = ce.length;
                 // extend compile-time environment
-                this.compile(comp.body,
-                    this.compile_time_environment_extend(
-                        comp.prms, ce))
+                const extended_ce = this.compile_time_environment_extend(
+                    comp.prms, ce);
+                for (const prm of comp.prms) {
+                    if (has_move_trait(prm.type.type) && prm.type.ref !== true)
+                        this.gain_ownership(extended_ce, prm)
+                }
+                this.compile(comp.body, extended_ce)
+
+                const drop_instr = this.instrs[this.wc - 2];
+                // update DROP instruction with function parameters
+                // assumes that all functions are blocks
+                drop_instr.to_free = drop_instr.to_free.concat(
+                    this.get_droppable_positions(ce.length, extended_ce))
+
                 this.instrs[this.wc++] = { tag: 'LDC', val: undefined }
                 this.instrs[this.wc++] = { tag: 'RESET' }
                 goto_instruction.addr = this.wc;
@@ -274,10 +315,10 @@ export class Compiler {
             (comp, ce) => {
                 const locals = this.scan(comp.body)
                 this.instrs[this.wc++] = { tag: 'ENTER_SCOPE', num: locals.length }
-                this.compile(comp.body,
-                    // extend compile-time environment
-                    this.compile_time_environment_extend(
-                        locals, ce))
+                // extend compile-time environment
+                const extended_ce = this.compile_time_environment_extend(locals, ce);
+                this.compile(comp.body, extended_ce)
+                this.generate_drop_instr(ce.length, extended_ce);
                 this.instrs[this.wc++] = { tag: 'EXIT_SCOPE' }
             },
         let:
@@ -287,6 +328,13 @@ export class Compiler {
                     tag: 'ASSIGN',
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
+                }
+
+                // expr type must have already been inferred at this point
+                const expr_type = comp.expr.inferred_type;
+                this.set_cte_type(ce, comp.sym, expr_type)
+                if (has_move_trait(expr_type)) {
+                    this.move_ownership(ce, comp.expr, comp);
                 }
             },
         const:
@@ -301,6 +349,9 @@ export class Compiler {
         ret:
             (comp, ce) => {
                 this.compile(comp.expr, ce)
+                // lose ownership, pass to caller
+                this.lose_ownership(ce, comp.expr)
+                this.generate_drop_instr(this.ce_size_bef_fun, ce);
                 if (comp.expr.tag === 'app') {
                     // tail call: turn CALL into TAILCALL
                     this.instrs[this.wc - 1].tag = 'TAIL_CALL'
@@ -321,6 +372,7 @@ export class Compiler {
                         }
                     },
                     ce)
+                this.set_cte_type(ce, comp.sym, comp.retType.type)
             }
     }
 
@@ -332,16 +384,48 @@ export class Compiler {
             first ? first = false
                 : this.instrs[this.wc++] = { tag: 'POP' }
             this.compile(comp, ce)
+
+            if (comp.tag === "app" && has_move_trait(comp.fun.inferred_type)) {
+                // free function application statements without assignments
+                this.instrs[this.wc++] = { tag: 'DROP_POP' }
+            }
         }
     }
 
+    // Should only be used for declarations
+    private make_cte_object = (comp) => {
+        // let rhs_type;
+        // switch (comp.tag) {
+        //     case "let":
+        //     case "const":
+        //         rhs_type = get_expr_type(comp.expr);
+        //         break;
+        //     case "fun":
+        //         rhs_type = comp.retType.type;
+        //         // should work if type checker implements fun
+        //         // rhs_type = get_expr_type(comp.expr);
+        //         break;
+        //     default:
+        //         error("not a declaration: " + comp)
+        // }
+
+        // pprint("comp")
+        // pprint(comp)
+        // pprint(rhs_type)
+        if (comp.sym === undefined)
+            error("Object " + comp + " does not have symbol")
+        return {
+            sym: comp.sym,
+            owner: undefined
+        }
+    }
 
     private scan = comp =>
         comp.tag === 'seq'
             ? comp.stmts.reduce((acc, x) => acc.concat(this.scan(x)),
                 [])
             : ['let', 'const', 'fun'].includes(comp.tag)
-                ? [comp.sym]
+                ? [this.make_cte_object(comp)] // store object instead of string
                 : []
 
     // compile component into instruction array instrs,

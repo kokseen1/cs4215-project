@@ -264,11 +264,11 @@ export class Heap {
     private Environment_tag = 10 // 0000 1010
     private Pair_tag = 11
     private Builtin_tag = 12
-    private String_tag = 13; 
+    private String_tag = 13;
 
     // Record<string, tuple(number, string)< where the key is the hash of the string
     // and the value is a tuple of the address of the string and the string itself
-    private stringPool = {}; 
+    private stringPool = {};
 
     // all values (including literals) are allocated on the heap.
 
@@ -434,6 +434,8 @@ export class Heap {
         // Store {address, string} in the string pool under hash at index 0
         this.stringPool[hash] = [{ address, string }];
 
+        console.log('Allocated string "' + string + '" at [' + address + ']');
+
         return address;
     };
 
@@ -583,21 +585,21 @@ export class Heap {
                         : this.is_Null(x)
                             ? null
                             : this.is_String(x)
-                            ? this.heap_get_string(x)
-                            // : this.is_Pair(x)
-                            // ? [
-                            //     this.address_to_JS_value(this.heap_get_child(x, 0)),
-                            //     this.address_to_JS_value(this.heap_get_child(x, 1))
-                            //     ]
-                            : this.is_Closure(x)
-                                ? "<closure>"
-                                : this.is_Blockframe(x)
-                                    ? "<blockframe>"
-                                    : this.is_Callframe(x)
-                                        ? "<callframe>"
-                                        : this.is_Builtin(x)
-                                            ? "<builtin>"
-                                            : "unknown word tag: " + this.word_to_string(x)
+                                ? this.heap_get_string(x)
+                                // : this.is_Pair(x)
+                                // ? [
+                                //     this.address_to_JS_value(this.heap_get_child(x, 0)),
+                                //     this.address_to_JS_value(this.heap_get_child(x, 1))
+                                //     ]
+                                : this.is_Closure(x)
+                                    ? "<closure>"
+                                    : this.is_Blockframe(x)
+                                        ? "<blockframe>"
+                                        : this.is_Callframe(x)
+                                            ? "<callframe>"
+                                            : this.is_Builtin(x)
+                                                ? "<builtin>"
+                                                : "unknown word tag: " + this.word_to_string(x)
 
     public JS_value_to_address = x =>
         is_boolean(x)
@@ -609,12 +611,12 @@ export class Heap {
                     : is_null(x)
                         ? this.Null
                         : is_string(x)
-                        ? this.heap_allocate_String(x)
-                        // : is_pair(x)
-                        // ? this.heap_allocate_Pair(
-                        //     this.JS_value_to_address(head(x)),
-                        //     this.JS_value_to_address(tail(x)))
-                        : "unknown word tag: " + this.word_to_string(x)
+                            ? this.heap_allocate_String(x)
+                            // : is_pair(x)
+                            // ? this.heap_allocate_Pair(
+                            //     this.JS_value_to_address(head(x)),
+                            //     this.JS_value_to_address(tail(x)))
+                            : "unknown word tag: " + this.word_to_string(x)
 
 
     public allocate_builtin_frame = () => {
