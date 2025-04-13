@@ -45,7 +45,8 @@ export class SimpleLangEvaluator {
             new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
         // Type check the program
-        this.typeChecker.type_program(prog);
+        const [is_success, annotated_ast] =
+            this.typeChecker.type_program(prog);
 
         // Compile the program
         const instrs = this.compiler.compile_program(prog);

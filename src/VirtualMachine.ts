@@ -16,9 +16,9 @@ export class VirtualMachine {
 
     private free = (addr) => {
         const val = this.heap.address_to_JS_value(addr);
-        //console.log("freeing " + val + " from [" + addr + "]");
         // Do not free literals such as True, False
-        // this.heap.free_node(addr)
+        this.heap.free_node(addr)
+        console.log('Freed "' + val + '" from [' + addr + ']');
     }
 
     private free_variables = (positions) => {
@@ -61,16 +61,12 @@ export class VirtualMachine {
             instr => {
                 // TOOD: more reliable way to check
                 // dont pop if it is the last value-producing statement
-                if (this.PC + 2 >= this.instrs.length)
-                    return
                 const to_free = instr.to_free;
                 this.free_variables(to_free.map(x => x.pos));
             },
         DROP_POP:
             instr => {
-                // dont pop if it is the last value-producing statement
-                if (this.PC + 3 >= this.instrs.length)
-                    return
+                // TODO: dont pop if it is the last value-producing statement
                 // pop from the OS and free the value
                 this.free(this.OS.pop())
             },
@@ -78,7 +74,7 @@ export class VirtualMachine {
             instr => {
                 const blockframe = this.RTS.pop()
                 this.E = this.heap.heap_get_Blockframe_environment(blockframe)
-                this.free(blockframe)
+                // this.free(blockframe)
             },
         LD:
             instr => {
@@ -146,7 +142,7 @@ export class VirtualMachine {
                 } else {
                     this.PC--
                 }
-                this.free(top_frame)
+                // this.free(top_frame)
             }
     }
 
@@ -244,7 +240,7 @@ export class VirtualMachine {
         //print_code(instrs)
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
-            // console.log([instrs[this.PC]]) 
+            // pprint(instrs[this.PC])
             //process.stdout.write("PC: " + this.PC + ": ")
             //console.log(this.instrs[this.PC])
             //display(PC, "PC: ")

@@ -1,4 +1,3 @@
-import { merge } from 'antlr4ng';
 import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null, pprint } from './Utils';
 
 export class TypeChecker {
@@ -509,7 +508,7 @@ export class TypeChecker {
     // after initializing wc and instrs
     public type_program = (program) => {
         this.type(program, this.global_type_environment)
-        console.log("[[[SUCCESS]]]")
-        return true
+        console.log("[ Passed TypeChecker! ]")
+        return [true, program]
     };
 }

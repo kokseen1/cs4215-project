@@ -1,6 +1,6 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, StrContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
@@ -40,6 +40,12 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
             : ctx.getText() === "false"
                 ? false
                 : error("Invalid boolean value: " + ctx.getText());
+        return { tag: "lit", val: val }
+    }
+
+    visitStr(ctx: StrContext) {
+        // Remove double quotes
+        const val = ctx.STRING().getText().slice(1, -1); 
         return { tag: "lit", val: val }
     }
 
