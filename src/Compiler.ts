@@ -1,10 +1,11 @@
-import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
+import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity } from './Utils';
 import { SimpleLangParser } from "./parser/src/SimpleLangParser";
 
 export class Compiler {
     private instrs = [];
     private wc = 0;
     private global_compile_environment
+    private ce_size_bef_fun = -1;
 
     constructor(builtins, constants) {
         const builtin_compile_frame = Object.keys(builtins)
@@ -21,13 +22,42 @@ export class Compiler {
     // compile-time frames, and a compile-time frame 
     // is an array of symbols
 
+    private get_compile_time_value = (env, x) => {
+        const [frame_index, value_index] =
+            this.compile_time_environment_position(env, x)
+        return env[frame_index][value_index];
+    }
+
+    private get_symbol = (x) =>
+        typeof x === 'string'// for builtins and constants
+            ? x
+            : typeof x === 'object' // let, fun, and param types will store entire comp object
+                ? x.sym || error("Symbol is undefined")
+                : error("Error: cannot get symbol for " + x)
+
+
+    // returns the 0-based index of the symbol in the frame
+    private get_value_index = (frame: any[], x: string) => {
+        for (let i = 0; i < frame.length; i++) {
+            if (this.get_symbol(frame[i]) === x)
+                return i;
+        }
+        // value does not exist in frame
+        return -1;
+    }
+
     // find the position [frame-index, value-index] 
     // of a given symbol x
     private compile_time_environment_position = (env, x) => {
-        let frame_index = env.length
-        while (this.value_index(env[--frame_index], x) === -1) { }
-        return [frame_index,
-            this.value_index(env[frame_index], x)]
+        // console.log(env)
+        for (let frame_index = env.length - 1; frame_index >= 0; frame_index--) {
+            const value_index = this.get_value_index(env[frame_index], x);
+            if (value_index !== -1) {
+                return [frame_index, value_index]
+            }
+        }
+        // cannot find symbol in environment
+        error("Error: cannot find symbol: " + x)
     }
 
     private compile_time_environment_extend = (vs, e) => {
@@ -35,15 +65,101 @@ export class Compiler {
         return push([...e], vs)
     }
 
-    private value_index = (frame, x) => {
-        for (let i = 0; i < frame.length; i++) {
-            if (typeof frame[i] === 'string' && frame[i] === x)
-                return i;
-            else if (typeof frame[i] === 'object' && frame[i].id === x)
-                return i;
-        }
-        return -1;
+    private gain_ownership = (comp, ce) => {
+        if (comp.ref === true)
+            error("Reference cannot gain ownership")
+        const sym = this.get_symbol(comp)
+        const ctv = this.get_compile_time_value(ce, sym);
+        ctv.owner = true;
+        console.log(sym + " gained ownership");
     }
+
+    private basic_lose = (ce, comp) => {
+        // if (comp.ref === true)
+        //     error("Reference cannot lose ownership")
+        const sym = this.get_symbol(comp)
+        const ctv = this.get_compile_time_value(ce, sym);
+        if (ctv.owner === false)
+            error(sym + " is already moved")
+        ctv.owner = false;
+        console.log(sym + " lost ownership");
+    }
+
+    private binop_lose = (ce, comp) => {
+        // TODO: ensure working for recursive nested binop
+        const frst = comp.frst;
+        const scnd = comp.scnd;
+        this.lose_ownership(frst, ce);
+        this.lose_ownership(scnd, ce);
+    }
+
+    private lose_ownership = (comp, ce) => {
+        switch (comp.tag) {
+            case 'nam':
+            case 'fun':
+                this.basic_lose(ce, comp);
+                break;
+            case 'binop':
+                this.binop_lose(ce, comp);
+                break;
+            case 'unop':
+                // TODO: lose for unop
+                break;
+            case 'lit': // cases such as 'lit' do not need to lose ownership
+                break;
+            default:
+                break;
+        }
+    }
+
+    private move_ownership = (ce, from, to) => {
+        // TODO: need to free if it was already owning something (mutated)
+        // might be possible to compile a drop instruction right here
+        // e.g.:
+        // let mut x = String::from("asd");
+        // let y = String::from("asd");
+        // insert DROP (x)
+        // let x = y;
+        // only move for valid types (nam, fun) but not (lit)
+
+        // lose first then gain back, to handle `x = x - 1;`
+        this.lose_ownership(from, ce)
+        this.gain_ownership(to, ce)
+        console.log("moved owner from " +
+            (from.val || from.fun?.sym || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
+    }
+
+    private get_droppable_positions = (ce_idx: number, ce) => {
+        if (ce_idx === -1)
+            error("Error: unable to get droppable positions")
+        pprint(ce)
+        const positions = [];
+        for (let i = ce_idx; i < ce.length; i++) {
+            const frame = ce[i];
+            for (const value of frame) {
+                if (value.owner === true) {
+                    const sym = this.get_symbol(value);
+                    positions.push({
+                        sym: sym,
+                        pos: this.compile_time_environment_position(ce, sym)
+                    })
+                }
+            }
+        }
+        return positions;
+    }
+
+    private make_drop_instr = (ce_idx: number, ce) => {
+        return {
+            tag: 'DROP',
+            to_free: this.get_droppable_positions(ce_idx, ce)
+        }
+    }
+
+    private generate_drop_instr = (ce_idx: number, ce) =>
+        this.instrs[this.wc++] = this.make_drop_instr(ce_idx, ce)
+
+
 
     private compile_comp = {
         lit:
