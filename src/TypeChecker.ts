@@ -406,6 +406,6 @@ export class TypeChecker {
     // after initializing wc and instrs
     public type_program = (program) => {
         this.type(program, this.global_type_environment)
-        return true
+        return [true, program]
     };
 }
