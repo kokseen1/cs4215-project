@@ -44,7 +44,8 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     }
 
     visitStr(ctx: StrContext) {
-        const val = ctx.STRING().getText()
+        // Remove double quotes
+        const val = ctx.STRING().getText().slice(1, -1); 
         return { tag: "lit", val: val }
     }
 
