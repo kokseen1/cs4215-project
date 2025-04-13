@@ -7,3 +7,9 @@ export const Traits = {
     "bool": TRAIT_COPY,
     "String": TRAIT_MOVE
 }
+
+export const is_movable = (type) => 
+    Traits[type] === TRAIT_MOVE;
+
+export const is_copyable = (type) =>
+    Traits[type] === TRAIT_COPY;
