@@ -19,7 +19,7 @@ export const display = (...args) => {
         const [value, msg] = args;
         console.log(msg, value);
     } else {
-        console.log(...args); 
+        console.log(...args);
     }
 };
 
@@ -57,3 +57,14 @@ export const pair = (x, y) => (m) =>
 
 export const pprint = (e) =>
     console.dir(e, { depth: null, colors: true });
+
+export const lookup_type = (val) =>
+    is_number(val)
+        ? "i32"
+        : is_boolean(val)
+            ? "bool"
+            : is_undefined(val)
+                ? "undefined"
+                : is_string(val)
+                    ? "String"
+                    : error("unknown literal: " + val)

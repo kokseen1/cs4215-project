@@ -1,4 +1,4 @@
-import { error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null } from './Utils';
+import { lookup_type, error, is_number, is_boolean, is_string, is_undefined, pair, head, tail, is_null } from './Utils';
 
 export class TypeChecker {
     constructor() {}
@@ -133,15 +133,7 @@ export class TypeChecker {
     // functions for each component tag
     private type_comp = {
         lit:
-            (comp, te) => is_number(comp.val) 
-                        ? "i32"
-                        : is_boolean(comp.val)
-                        ? "bool"
-                        : is_undefined(comp.val)
-                        ? "undefined"
-                        : is_string(comp.val)
-                        ? "String"
-                        : error("unknown literal: " + comp.val),
+            (comp, te) => lookup_type(comp.val),
         nam:
             (comp, te) => this.lookup_field("type", comp.sym, te),
         unop:
