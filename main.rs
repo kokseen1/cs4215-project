@@ -1,9 +1,5 @@
-fn test(a: & mut i32) { // MISMATCHED TYPES
-    //*a = 5;
-}
+fn test(mut a: & mut i32) {}
 
-let x = 7;
-test(& x);
-
-//fn f(a:i32) {}
-//f(true); // fails
+let mut x = 1;
+let b = & mut x;
+test(& mut x);

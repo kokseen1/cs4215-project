@@ -200,18 +200,20 @@ export class TypeChecker {
             },
         app:
             (comp, te) => {
+                
+                // ADD BORROW CHECKING HERE !!
+
                 const func_type = this.type(comp.fun, te)
                 const param_types = func_type.params.map(p => p.type)
-                const params_borrow_type = func_type.params.map(p => p.borrow).map(p => p ? "&" : "")
-                const merged_param_types = param_types.map((item, index) => item + params_borrow_type[index]);
-
-                const arg_types = comp.args.map(e => this.type(e, te))
-                const args_borrow_type = comp.args.map(arg => "sym" in arg ? arg.ref : false).map(p => p ? "&" : "")
-                const merged_arg_types = arg_types.map((item, index) => item + args_borrow_type[index]);
+                const params_borrow_type = func_type.params.map(p => p.borrow).map(p => p ? "& " : "")
+                const params_mut_type = func_type.params.map(p => p.borrow_type).map(p => p === "mutable" ? "mut " : "")
+                const merged_param_types = param_types.map((item, i) => params_borrow_type[i] + params_mut_type[i] + item);
                 
-                console.log(func_type.params)
-                console.log(comp.args)
-
+                const arg_types = comp.args.map(e => this.type(e, te))
+                const args_borrow_type = comp.args.map(arg => "sym" in arg ? arg.ref : false).map(p => p ? "& " : "")
+                const args_mut_type = comp.args.map(p => p.mut).map(p => p ? "mut " : "")
+                const merged_arg_types = arg_types.map((item, i) => args_borrow_type[i] + args_mut_type[i] + item);
+                
                 // check type
                 if (!this.equal_types(merged_param_types, merged_arg_types)) {
                     error("type error in application:\n" +
@@ -219,6 +221,7 @@ export class TypeChecker {
                         "actual argument types: [ " + this.unparse_types(merged_arg_types) + " ]")
                 }
                 return func_type.ret
+
             },
         let:
             (comp, te) => {
@@ -342,13 +345,18 @@ export class TypeChecker {
 
                                         // handle params types declared as references (i.e. can borrow)
                                         // handle mut, which is on LHS (instead of RHS) of func signature
-                                        let params = comp.prms.map(({ mut: mut, type: { tag, ref, ...fields } }) => ({
-                                                        ...fields,
-                                                        mut: mut,
-                                                        borrow: ref,
-                                                        type: this.get_type(fields.type),
-                                                        param: true
-                                                    }))
+                                        let params = comp.prms.map(
+                                            ({ mut: outer_mut, type: { tag, ref, mut, ...fields } }) => {
+                                                return {
+                                                    ...fields,
+                                                    mut: outer_mut,
+                                                    borrow: ref,
+                                                    borrow_type: mut ? "mutable" : "immutable",
+                                                    type: this.get_type(fields.type),
+                                                    param: true
+                                                }
+                                            }
+                                        )
 
                                         return { "type": {
                                             "params": params,
