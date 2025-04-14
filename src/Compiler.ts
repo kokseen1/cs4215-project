@@ -262,11 +262,11 @@ export class Compiler {
                     }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
-                pprint(comp)
-                if (has_move_trait(comp.fun.inferred_type)) {
-                    // free function application statements without assignments
-                    this.instrs[this.wc++] = { tag: 'DROP_POP' }
-                }
+
+                // if (has_move_trait(comp.fun.inferred_type)) {
+                //     // free function application statements without assignments
+                //     this.instrs[this.wc++] = { tag: 'DROP_POP' }
+                // }
             },
         assmt:
             // store precomputed position info in ASSIGN instruction
@@ -362,12 +362,12 @@ export class Compiler {
                     this.lose_ownership(ce, comp.expr)
                 }
                 this.generate_drop_instr(this.ce_size_bef_fun, ce);
-                if (comp.expr.tag === 'app') {
-                    // tail call: turn CALL into TAILCALL
-                    this.instrs[this.wc - 1].tag = 'TAIL_CALL'
-                } else {
-                    this.instrs[this.wc++] = { tag: 'RESET' }
-                }
+                // if (comp.expr.tag === 'app') {
+                //     // tail call: turn CALL into TAILCALL
+                //     this.instrs[this.wc - 1].tag = 'TAIL_CALL'
+                // } else {
+                this.instrs[this.wc++] = { tag: 'RESET' }
+                // }
             },
         fun:
             (comp, ce) => {
