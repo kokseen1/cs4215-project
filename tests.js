@@ -185,3 +185,41 @@ what_is_the_best_programming_language();
 `,
     "Rust",
 );
+
+// ownership tests
+
+test(`
+let x = String::from("abc");
+let y = x; // x loses ownership
+x;
+    `, "Error: Error: use of moved value x");
+
+test(`
+fn f(a: String) {
+    // a gains ownership
+    // and is dropped upon exit of fn scope
+}
+
+let x = String::from("abc");
+f(x); // x loses ownership
+x;
+    `, "Error: Error: use of moved value x");
+
+test(`
+fn f(a: String) {
+    // a gains ownership
+    return a; // returns ownership to caller
+}
+
+let x = String::from("abc");
+let y = f(x);
+y;
+    `, "abc");
+
+test(`
+let x = String::from("abc");
+{
+    let y = x;
+}
+    x;
+    `, "Error: use of moved value x");
