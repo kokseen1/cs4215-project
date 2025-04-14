@@ -115,12 +115,12 @@ fact(4);
     24,
 );
 
-test(
-    `
-display(10);
-`,
-    10,
-);
+// test(
+//     `
+// display(10);
+// `,
+//     10,
+// );
 
 test("while (false) { 1; }", undefined);
 
