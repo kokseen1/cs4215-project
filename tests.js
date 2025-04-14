@@ -194,8 +194,15 @@ let y = x; // x loses ownership
 x;
     `, "Error: Error: use of moved value x");
 
+
 test(`
-fn f(a: String) {
+let x = String::from("abc");
+let y = x; // x loses ownership
+y;
+    `, "abc");
+
+test(`
+fn f(a: String) { // void return
     // a gains ownership
     // and is dropped upon exit of fn scope
 }
@@ -206,7 +213,7 @@ x;
     `, "Error: Error: use of moved value x");
 
 test(`
-fn f(a: String) {
+fn f(a: String) -> String {
     // a gains ownership
     return a; // returns ownership to caller
 }
@@ -222,4 +229,4 @@ let x = String::from("abc");
     let y = x;
 }
     x;
-    `, "Error: use of moved value x");
+    `, "Error: Error: use of moved value x");
