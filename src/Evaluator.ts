@@ -7,21 +7,16 @@ import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
 
 export class SimpleLangEvaluator {
-    private executionCount: number;
     public visitor: SimpleLangEvaluatorVisitor;
     public typeChecker: TypeChecker;
     public compiler: Compiler;
     public vm: VirtualMachine;
 
     constructor() {
-        this.executionCount = 0;
         this.visitor = new SimpleLangEvaluatorVisitor();
     }
 
-    async evaluateChunk(chunk: string): Promise<void> {
-        this.executionCount++;
-        // try {
-        // Create the lexer and parser
+    public parse_compile_run = (chunk) => {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new SimpleLangLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -45,28 +40,25 @@ export class SimpleLangEvaluator {
             new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
         // Type check the program
-        const [is_success, annotated_ast] =
+        const [is_success, checked_prog] =
             this.typeChecker.type_program(prog);
 
         // Compile the program
         const instrs = this.compiler.compile_program(prog);
-        /* instrs.map((e, i) => {
-            process.stdout.write(i + ": ")
-            console.dir(e, { depth: null });
-        }) */
+
+        // Print the instructions
+        // instrs.map((e, i) => {
+        //     process.stdout.write(i + ": ")
+        //     console.dir(e, { depth: null });
+        // })
 
         // Evaluate the instructions
         const result = this.vm.run(instrs);
+        return result;
+    }
 
-        // Send the result to the REPL
+    async evaluateChunk(chunk: string) {
+        const result = this.parse_compile_run(chunk);
         console.log(`Result of expression: ${result}`);
-        // } catch (error) {
-        //     // Handle errors and send them to the REPL
-        //     if (error instanceof Error) {
-        //         console.log(`Error: ${error.message}`);
-        //     } else {
-        //         console.log(`Error: ${String(error)}`);
-        //     }
-        // }
     }
 }
