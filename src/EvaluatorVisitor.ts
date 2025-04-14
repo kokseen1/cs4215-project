@@ -58,7 +58,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     // Operators
     visitUnaryOp(ctx: UnaryOpContext) {
         const frst = ctx.expression();
-        return { tag: "unop", sym: ctx._op.type, frst: frst };
+        return { tag: "unop", sym: ctx._op.text, frst: this.visit(frst) };
     }
 
     // Helper function
@@ -67,7 +67,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         const scnd = ctx.expression(1);
         return {
             tag: "binop",
-            sym: ctx._op.type,
+            sym: ctx._op.text,
             frst: this.visit(frst),
             scnd: this.visit(scnd)
         };
@@ -101,7 +101,7 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     visitLogical(ctx: LogicalContext) {
         const frst = ctx.expression(0);
         const scnd = ctx.expression(1);
-        const sym = ctx._op.type;
+        const sym = ctx._op.text;
 
         return {
             tag: "log",

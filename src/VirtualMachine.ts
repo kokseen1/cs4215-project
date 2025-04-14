@@ -148,28 +148,28 @@ export class VirtualMachine {
 
 
     private unop_microcode = {
-        [SimpleLangParser.SUB]: x => - x,
-        [SimpleLangParser.NOT]: x => is_boolean(x)
+        '-': x => - x,
+        '!': x => is_boolean(x)
             ? !x
             : error('! expects boolean, found: ' + x)
     }
 
     private binop_microcode = {
-        [SimpleLangParser.ADD]: (x, y) => (is_number(x) && is_number(y))
+        '+': (x, y) => (is_number(x) && is_number(y))
             ? x + y
             : (is_string(x) && is_string(y))
                 ? x + y
                 : error("+ expects two numbers or two strings"),
         // todo: add error handling to JS for the following, too
-        [SimpleLangParser.MUL]: (x, y) => x * y,
-        [SimpleLangParser.SUB]: (x, y) => x - y,
-        [SimpleLangParser.DIV]: (x, y) => x / y,
-        [SimpleLangParser.LT]: (x, y) => x < y,
-        [SimpleLangParser.GT]: (x, y) => x > y,
-        [SimpleLangParser.LE]: (x, y) => x <= y,
-        [SimpleLangParser.GE]: (x, y) => x >= y,
-        [SimpleLangParser.EQ]: (x, y) => x === y,
-        [SimpleLangParser.NEQ]: (x, y) => x !== y
+        '*': (x, y) => x * y,
+        '-': (x, y) => x - y,
+        '/': (x, y) => x / y,
+        '<': (x, y) => x < y,
+        '>': (x, y) => x > y,
+        '<=': (x, y) => x <= y,
+        '>=': (x, y) => x >= y,
+        '==': (x, y) => x === y,
+        '!=': (x, y) => x !== y
     }
 
     // v2 is popped before v1
@@ -236,7 +236,7 @@ export class VirtualMachine {
 
     public run(instrs) {
         this.instrs = instrs
-        this.initialize_machine(100000);
+        this.initialize_machine(100000000);
         //print_code(instrs)
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
