@@ -48,6 +48,16 @@ export class SimpleLangEvaluator extends BasicEvaluator {
             // Evaluate the instructions
             const result = this.vm.run(instrs);
 
+            const Diagon = await import("diagonjs");
+            const diagon = await Diagon.init(); // very important!
+            const output = diagon.translate.graphDAG(`
+            x -> y
+            y -> fun
+            z -> fun
+            fun -> res
+            `);
+            this.conductor.sendOutput(output);
+
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result.toString()}`);
         } catch (error) {
