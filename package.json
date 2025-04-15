@@ -35,5 +35,8 @@
     "rollup": "^4.34.1",
     "tslib": "^2.8.1",
     "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "diagonjs": "^1.6.1"
   }
 }

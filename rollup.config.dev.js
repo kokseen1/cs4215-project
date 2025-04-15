@@ -4,6 +4,7 @@ import typescript from "@rollup/plugin-typescript";
 
 export default {
     treeshake: false,
+    external: ['diagonjs'],
     plugins: [nodeResolve(), typescript()],
     input: "src/Evaluator.ts",
     output: {
