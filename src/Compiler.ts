@@ -126,25 +126,24 @@ export class Compiler {
     }
 
     private move_ownership = (ce, from, to) => {
-        // TODO: need to free if it was already owning something (mutated)
-        // might be possible to compile a drop instruction right here
-        // e.g.:
-        // let mut x = String::from("asd");
-        // let y = String::from("asd");
-        // insert DROP (x)
-        // let x = y;
-        // only move for valid types (nam, fun) but not (lit)
-
         // lose first then gain back, to handle `x = x - 1;`
         this.lose_ownership(ce, from)
+        if (this.get_compile_time_value(ce, to.sym).owner === true) {
+            // drop if it was already owning something (mutation)
+            const pos = this.compile_time_environment_position(ce, to.sym);
+            this.generate_instr(this.make_drop_instr([{
+                sym: to.sym,
+                pos: this.compile_time_environment_position(ce, to.sym)
+            }]));
+        }
         this.gain_ownership(ce, to)
         const from_sym = ((from.val ? '"' + from.val + '"' : undefined)
             || (from.fun?.sym ? from.fun.sym + "()" : undefined)
             || from.sym)
-            const to_sym = this.get_symbol(to);
+        const to_sym = this.get_symbol(to);
         console.log("moved owner from " +
-             from_sym + " (" + from.tag + ") to " + to_sym);
-             this.add_ownership_dag(from_sym, to_sym);
+            from_sym + " (" + from.tag + ") to " + to_sym);
+        this.add_ownership_dag(from_sym, to_sym);
     }
 
     private ownership_dag = [];
@@ -172,16 +171,18 @@ export class Compiler {
         return positions;
     }
 
-    private make_drop_instr = (ce_idx: number, ce) => {
+    private make_drop_instr = (positions) => {
         return {
             tag: 'DROP',
-            to_free: this.get_droppable_positions(ce_idx, ce)
+            to_free: positions
         }
     }
 
     private generate_drop_instr = (ce_idx: number, ce) =>
-        this.instrs[this.wc++] = this.make_drop_instr(ce_idx, ce)
+        this.generate_instr(this.make_drop_instr(this.get_droppable_positions(ce_idx, ce)))
 
+    private generate_instr = (instr) =>
+        this.instrs[this.wc++] = instr
 
     private compile_comp = {
         lit:
@@ -284,16 +285,18 @@ export class Compiler {
             // store precomputed position info in ASSIGN instruction
             (comp, ce) => {
                 this.compile(comp.expr, ce)
+
+                const expr_type = comp.expr.inferred_type;
+                if (has_move_trait(expr_type)) {
+                    this.move_ownership(ce, comp.expr, comp);
+                }
+
                 this.instrs[this.wc++] = {
                     tag: 'ASSIGN',
                     pos: this.compile_time_environment_position(
                         ce, comp.sym)
                 }
 
-                const expr_type = comp.expr.inferred_type;
-                if (has_move_trait(expr_type)) {
-                    this.move_ownership(ce, comp.expr, comp);
-                }
             },
         lam:
             (comp, ce) => {
@@ -343,11 +346,6 @@ export class Compiler {
         let:
             (comp, ce) => {
                 this.compile(comp.expr, ce)
-                this.instrs[this.wc++] = {
-                    tag: 'ASSIGN',
-                    pos: this.compile_time_environment_position(
-                        ce, comp.sym)
-                }
 
                 // expr type must have already been inferred at this point
                 const expr_type = comp.expr.inferred_type;
@@ -355,6 +353,13 @@ export class Compiler {
                 if (has_move_trait(expr_type)) {
                     this.move_ownership(ce, comp.expr, comp);
                 }
+
+                this.instrs[this.wc++] = {
+                    tag: 'ASSIGN',
+                    pos: this.compile_time_environment_position(
+                        ce, comp.sym)
+                }
+
             },
         const:
             (comp, ce) => {
