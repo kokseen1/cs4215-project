@@ -1,10 +1,12 @@
 import { SimpleLangEvaluator } from './dist/Evaluator.js';
 
-const test = (program, expected_type_or_error) => {
+const test = async (program, expected_type_or_error) => {
     console.log()
     let t
     try {
-        t = new SimpleLangEvaluator().parse_compile_run(program);
+        const evaluator = new SimpleLangEvaluator();
+        await evaluator.init();
+        t = evaluator.parse_compile_run(program);
     } catch (x) {
         t = x + ""
     }
