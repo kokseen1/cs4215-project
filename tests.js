@@ -232,3 +232,21 @@ let x = String::from("abc");
 }
     x;
     `, "Error: Error: use of moved value x");
+
+test(`
+fn g(b: String) -> String {
+    // b gains ownership
+    let c = String::from("xyz");
+    return c;
+}
+
+fn f(a: String) -> String {
+    // a gains ownership
+    let b = g(a);
+    return b;
+}
+
+let x = String::from("abc");
+let y = f(x);
+y;
+    `, "xyz");
