@@ -49,7 +49,7 @@ export class SimpleLangEvaluator extends BasicEvaluator {
             const result = this.vm.run(instrs);
 
             const Diagon = await import("diagonjs");
-            const diagon = await Diagon.init(); // very important!
+            const diagon = await Diagon.init("https://kokseen1.github.io/cs4215-project/diagon.js-1.1.wasm"); // use relative path
             const output = diagon.translate.graphDAG(`
             x -> y
             y -> fun
