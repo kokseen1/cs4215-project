@@ -67,3 +67,6 @@ export const lookup_type = (val) =>
                 : is_string(val)
                     ? "String"
                     : error("unknown literal: " + val)
+
+export const to_diagon = (dag: any[]) =>
+    dag.map(e => `${e[0]} -> ${e[1]}`).join("\n");
