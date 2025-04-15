@@ -69,4 +69,5 @@ export const lookup_type = (val) =>
                     : error("unknown literal: " + val)
 
 export const to_diagon = (dag: any[]) =>
-    dag.map(e => `${e[0]} -> ${e[1]}`).join("\n");
+    // Reversed so that functions (usually declared first) are shown on the right
+    dag.reverse().map(e => `${e[0]} -> ${e[1]}`).join("\n");

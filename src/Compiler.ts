@@ -139,7 +139,7 @@ export class Compiler {
         this.lose_ownership(ce, from)
         this.gain_ownership(ce, to)
         const from_sym = ((from.val ? '"' + from.val + '"' : undefined)
-            || from.fun?.sym
+            || (from.fun?.sym ? from.fun.sym + "()" : undefined)
             || from.sym)
             const to_sym = this.get_symbol(to);
         console.log("moved owner from " +
@@ -270,7 +270,7 @@ export class Compiler {
                     if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
                         has_move_trait(arg.inferred_type)) {
                         this.lose_ownership(ce, arg)
-                        this.add_ownership_dag(arg.sym, comp.fun.sym);
+                        this.add_ownership_dag(arg.sym, comp.fun.sym + "()");
                     }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }

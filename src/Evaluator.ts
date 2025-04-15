@@ -5,18 +5,25 @@ import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
 import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
+import { pprint, to_diagon } from './Utils';
 
 export class SimpleLangEvaluator {
     public visitor: SimpleLangEvaluatorVisitor;
     public typeChecker: TypeChecker;
     public compiler: Compiler;
     public vm: VirtualMachine;
+    public diagon;
 
     constructor() {
         this.visitor = new SimpleLangEvaluatorVisitor();
     }
 
-    public parse_compile_run = (chunk) => {
+    async init() {
+        const Diagon = await import("diagonjs");
+        this.diagon = await Diagon.init();
+    }
+
+    public parse_compile_run(chunk) {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new SimpleLangLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -42,9 +49,17 @@ export class SimpleLangEvaluator {
         // Type check the program
         const [is_success, checked_prog] =
             this.typeChecker.type_program(prog);
+        // const [is_success, checked_prog] =
+        //     this.typeChecker.type_program(prog);
 
         // Compile the program
-        const [instrs, ownership_dag] = this.compiler.compile_program(prog);
+        const [instrs, ownership_dag] =
+            this.compiler.compile_program(prog);
+
+        const diagon_dag = this.diagon.translate.graphDAG(
+            to_diagon(ownership_dag));
+        console.log("Ownership visualization:");
+        console.log(diagon_dag);
 
         // Print the instructions
         // instrs.map((e, i) => {
@@ -58,6 +73,7 @@ export class SimpleLangEvaluator {
     }
 
     async evaluateChunk(chunk: string) {
+        await this.init();
         const result = this.parse_compile_run(chunk);
         console.log(`Result of expression: ${result}`);
     }
