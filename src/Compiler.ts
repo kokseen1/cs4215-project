@@ -138,8 +138,19 @@ export class Compiler {
         // lose first then gain back, to handle `x = x - 1;`
         this.lose_ownership(ce, from)
         this.gain_ownership(ce, to)
+        const from_sym = ((from.val ? '"' + from.val + '"' : undefined)
+            || from.fun?.sym
+            || from.sym)
+            const to_sym = this.get_symbol(to);
         console.log("moved owner from " +
-            (from.val || from.fun?.sym || from.sym) + " (" + from.tag + ") to " + this.get_symbol(to))
+             from_sym + " (" + from.tag + ") to " + to_sym);
+             this.add_ownership_dag(from_sym, to_sym);
+    }
+
+    private ownership_dag = [];
+
+    private add_ownership_dag = (from: string, to: string) => {
+        this.ownership_dag.push([from, to]);
     }
 
     private get_droppable_positions = (ce_idx: number, ce) => {
@@ -259,6 +270,7 @@ export class Compiler {
                     if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
                         has_move_trait(arg.inferred_type)) {
                         this.lose_ownership(ce, arg)
+                        this.add_ownership_dag(arg.sym, comp.fun.sym);
                     }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
@@ -447,6 +459,6 @@ export class Compiler {
         this.instrs = [];
         this.compile(program, this.global_compile_environment);
         this.instrs[this.wc] = { tag: "DONE" };
-        return this.instrs
+        return [this.instrs, this.ownership_dag]
     };
 }

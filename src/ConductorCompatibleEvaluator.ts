@@ -43,7 +43,7 @@ export class SimpleLangEvaluator extends BasicEvaluator {
                 new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
             // Compile the program
-            const instrs = this.compiler.compile_program(prog);
+            const [instrs, ownership_dag] = this.compiler.compile_program(prog);
 
             // Evaluate the instructions
             const result = this.vm.run(instrs);

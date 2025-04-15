@@ -44,7 +44,7 @@ export class SimpleLangEvaluator {
             this.typeChecker.type_program(prog);
 
         // Compile the program
-        const instrs = this.compiler.compile_program(prog);
+        const [instrs, ownership_dag] = this.compiler.compile_program(prog);
 
         // Print the instructions
         // instrs.map((e, i) => {
