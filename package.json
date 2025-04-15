@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "diagonjs": "^1.6.1",
+    "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-polyfill-node": "^0.13.0"
   }
 }
