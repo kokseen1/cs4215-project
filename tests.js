@@ -250,3 +250,25 @@ let x = String::from("abc");
 let y = f(x);
 y;
     `, "xyz");
+
+test(`
+let a = String::from("apple");
+let b = String::from("banana");
+
+if true {
+    let c = a; // ownership of a moves to c
+    if true {
+        let d = b; // ownership of b moves to d
+    }
+}
+b; // attempting to use b after ownership has been moved
+    `, "Error: Error: use of moved value b");
+
+test(`
+let a = String::from("apple");
+if true {
+    let b = a; // ownership of a moves to b
+    a = String::from("orange"); // reassigns ownership of a
+}
+a; // ownership has been reassigned, so a can still be used
+    `, "orange");
