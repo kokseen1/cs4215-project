@@ -217,6 +217,7 @@ export class Compiler {
             (comp, ce) => {
                 this.compile(comp.frst, ce)
                 this.compile(comp.scnd, ce)
+                comp.inferred_type = comp.frst.inferred_type
                 this.instrs[this.wc++] = { tag: 'BINOP', sym: comp.sym }
             },
         log:
