@@ -34,7 +34,7 @@ export class SimpleLangEvaluator {
 
         // Convert the parsed tree into a json-like format
         const prog = this.visitor.visit(tree);
-        console.log(JSON.stringify(prog));
+        //console.log(JSON.stringify(prog));
 
         // Instantiate the TypeChecker
         this.typeChecker = new TypeChecker();
@@ -54,8 +54,8 @@ export class SimpleLangEvaluator {
         const [instrs, ownership_dag] =
             this.compiler.compile_program(prog);
 
-        const diagon_dag = this.diagon.translate.graphDAG(
-            to_diagon(ownership_dag));
+        //const diagon_dag = this.diagon.translate.graphDAG(
+        //    to_diagon(ownership_dag));
         //console.log("Ownership visualization:");
         //console.log(diagon_dag || "no ownership moved");
 

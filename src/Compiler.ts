@@ -455,6 +455,9 @@ export class Compiler {
     // compile component into instruction array instrs,
     // starting at wc (write counter)
     private compile = (comp, ce) => {
+        if (!(comp.tag in this.compile_comp)) {
+            console.log("COMPILER", comp.tag)
+        }
         this.compile_comp[comp.tag](comp, ce);
     };
 
