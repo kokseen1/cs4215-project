@@ -434,7 +434,7 @@ export class Heap {
         // Store {address, string} in the string pool under hash at index 0
         this.stringPool[hash] = [{ address, string }];
 
-        console.log('Allocated string "' + string + '" at [' + address + ']');
+        //console.log('Allocated string "' + string + '" at [' + address + ']');
 
         return address;
     };

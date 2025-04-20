@@ -47,8 +47,8 @@ export class SimpleLangEvaluator {
             new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
         // Type check the program
-        // const [is_success, checked_prog] =
-        //     this.typeChecker.type_program(prog);
+        const [is_success, checked_prog] =
+            this.typeChecker.type_program(prog);
 
         // Compile the program
         const [instrs, ownership_dag] =
@@ -56,8 +56,8 @@ export class SimpleLangEvaluator {
 
         const diagon_dag = this.diagon.translate.graphDAG(
             to_diagon(ownership_dag));
-        console.log("Ownership visualization:");
-        console.log(diagon_dag || "no ownership moved");
+        //console.log("Ownership visualization:");
+        //console.log(diagon_dag || "no ownership moved");
 
         // Print the instructions
         // instrs.map((e, i) => {

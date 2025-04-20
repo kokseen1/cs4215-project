@@ -265,13 +265,14 @@ export class TypeChecker {
                                 func_type.params,
                                 te)
                 extended_te = this.deep_copy_type_environment(extended_te)
+
                 const body_type = this.type_fun_body(comp.body, extended_te)
                 if (this.equal_type(body_type, func_type.ret)) {
                     return "void"
                 } else {
                     error("type error in function declaration; " +
-                            "declared return type: " + this.unparse_types(func_type.ret) + ", " +
-                            "actual return type: " + this.unparse_types(body_type))
+                            "declared return type: " + func_type.ret + ", " +
+                            "actual return type: " + body_type)
                 }
             },
         app:
@@ -508,7 +509,7 @@ export class TypeChecker {
     // after initializing wc and instrs
     public type_program = (program) => {
         this.type(program, this.global_type_environment)
-        console.log("[ Passed TypeChecker! ]")
+        console.log("[[[SUCCESS]]]")
         return [true, program]
     };
 }

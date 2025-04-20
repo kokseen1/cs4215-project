@@ -1,6 +1,7 @@
-fn test(mut a: i32) {
+fn test(mut a: i32) -> i32 {
     a = 5; 
+    return a;
 }
 
-let x = 7;
+let x = 5;
 test(x);
