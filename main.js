@@ -1,7 +1,7 @@
-import { DustEvaluator } from './dist/Evaluator.js';
+import { LocalDustEvaluator } from './dist/LocalEvaluator.js';
 import { readFileSync } from 'fs';
 
-var evaluator = new DustEvaluator();
+var evaluator = new LocalDustEvaluator();
 
 const prog = readFileSync('./main.rs', 'utf-8');
-evaluator.evaluateChunk(prog);
+await evaluator.evaluateChunk(prog);

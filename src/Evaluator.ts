@@ -5,26 +5,18 @@ import { DustEvaluatorVisitor } from './EvaluatorVisitor';
 import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
-import { pprint, to_diagon } from './Utils';
-import { resourceLimits } from 'worker_threads';
 
 export class DustEvaluator {
     public visitor: DustEvaluatorVisitor;
     public typeChecker: TypeChecker;
     public compiler: Compiler;
     public vm: VirtualMachine;
-    public diagon;
 
     constructor() {
         this.visitor = new DustEvaluatorVisitor();
     }
 
-    async init() {
-        const Diagon = await import("diagonjs");
-        this.diagon = await Diagon.init();
-    }
-
-    public parse_compile_run(chunk, visualize_ownership) {
+    public evaluate(chunk) {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new DustLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -35,7 +27,6 @@ export class DustEvaluator {
 
         // Convert the parsed tree into a json-like format
         const prog = this.visitor.visit(tree);
-        //console.log(JSON.stringify(prog));
 
         // Instantiate the TypeChecker
         this.typeChecker = new TypeChecker();
@@ -54,13 +45,6 @@ export class DustEvaluator {
         // Compile the program
         const [instrs, ownership_dag] =
             this.compiler.compile_program(prog);
-        
-
-        let diagon_dag;
-        if (visualize_ownership) {
-            diagon_dag = this.diagon.translate.graphDAG(
-                to_diagon(ownership_dag)) || "no ownership moved";
-        }
 
         // Print the instructions
         // instrs.map((e, i) => {
@@ -70,25 +54,7 @@ export class DustEvaluator {
 
         // Evaluate the instructions
         const result = this.vm.run(instrs);
-        return [result, diagon_dag];
-    }
 
-    async evaluateChunk(chunk: string) {
-        await this.init();
-        const [result, diagon_dag] = this.parse_compile_run(chunk, false);
-        console.log(`Result of expression: ${result}`);
-        if (diagon_dag) {
-            console.log("Ownership visualization:");
-            console.log(diagon_dag);
-        }
-    }
-
-    async testChunk(chunk: string, visualize_ownership) {
-        try {
-            await this.init()
-            return this.parse_compile_run(chunk, visualize_ownership)
-        } catch (e) {
-            return [e + "", false]
-        }
+        return [result, ownership_dag];
     }
 }

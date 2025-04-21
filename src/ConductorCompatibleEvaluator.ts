@@ -1,52 +1,22 @@
 import { initialise } from "conductor/dist/conductor/runner/util/";
 import { BasicEvaluator } from "conductor/dist/conductor/runner";
 import { IRunnerPlugin } from "conductor/dist/conductor/runner/types";
-import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { DustLexer } from './parser/src/DustLexer';
-import { DustParser } from './parser/src/DustParser';
-import { DustEvaluatorVisitor } from './EvaluatorVisitor';
-import { Compiler } from "./Compiler";
-import { VirtualMachine } from "./VirtualMachine";
+import { DustEvaluator } from "./Evaluator";
 
-export class DustEvaluator extends BasicEvaluator {
+export class ConductorCompatibleDustEvaluator extends BasicEvaluator {
     private executionCount: number;
-    private visitor: DustEvaluatorVisitor;
-    public compiler: Compiler;
-    public vm: VirtualMachine;
+    private evaluator: DustEvaluator;
 
     constructor(conductor: IRunnerPlugin) {
         super(conductor);
+        this.evaluator = new DustEvaluator;
         this.executionCount = 0;
-        this.visitor = new DustEvaluatorVisitor();
     }
 
     async evaluateChunk(chunk: string): Promise<void> {
         this.executionCount++;
         try {
-            // Create the lexer and parser
-            const inputStream = CharStream.fromString(chunk);
-            const lexer = new DustLexer(inputStream);
-            const tokenStream = new CommonTokenStream(lexer);
-            const parser = new DustParser(tokenStream);
-
-            // Parse the input
-            const tree = parser.prog();
-
-            // Evaluate the parsed tree
-            const prog = this.visitor.visit(tree);
-
-            // Instantiate the VM
-            this.vm = new VirtualMachine();
-
-            // Instantiate the compiler
-            this.compiler =
-                new Compiler(this.vm.get_builtins(), this.vm.get_constants());
-
-            // Compile the program
-            const [instrs, ownership_dag] = this.compiler.compile_program(prog);
-
-            // Evaluate the instructions
-            const result = this.vm.run(instrs);
+            const result = this.evaluator.evaluate(chunk);
 
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result.toString()}`);
@@ -61,4 +31,4 @@ export class DustEvaluator extends BasicEvaluator {
     }
 }
 
-const {runnerPlugin, conduit} = initialise(DustEvaluator);
+const { runnerPlugin, conduit } = initialise(ConductorCompatibleDustEvaluator);
