@@ -83,4 +83,17 @@ if true {
 a; // ownership has been reassigned, so a can still be used
     `, "orange", visualize_ownership);
 
+test(`
+let a = String::from("apple");
+let b = String::from("banana");
+
+if false {
+    let c = a;  // a moved here (even though this branch won't run)
+} else {
+    let d = b;  // b moved here
+}
+
+a;  // Error: use of moved value a
+    `, "Error: use of moved value a", visualize_ownership);
+
 }
