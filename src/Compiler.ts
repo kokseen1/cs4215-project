@@ -169,7 +169,11 @@ export class Compiler {
                 }
             }
         }
-        this.last_drop_positions = positions;
+
+        if (positions.length > 0) {
+            this.last_drop_positions = positions;
+        }
+
         return positions;
     }
 
