@@ -1,7 +1,7 @@
-import { SimpleLangEvaluator } from './dist/Evaluator.js';
+import { DustEvaluator } from './dist/Evaluator.js';
 import { readFileSync } from 'fs';
 
-var evaluator = new SimpleLangEvaluator();
+var evaluator = new DustEvaluator();
 
 const prog = readFileSync('./main.rs', 'utf-8');
 evaluator.evaluateChunk(prog);

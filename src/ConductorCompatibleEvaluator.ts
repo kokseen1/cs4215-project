@@ -2,22 +2,22 @@ import { initialise } from "conductor/dist/conductor/runner/util/";
 import { BasicEvaluator } from "conductor/dist/conductor/runner";
 import { IRunnerPlugin } from "conductor/dist/conductor/runner/types";
 import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { SimpleLangLexer } from './parser/src/SimpleLangLexer';
-import { SimpleLangParser } from './parser/src/SimpleLangParser';
-import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
+import { DustLexer } from './parser/src/DustLexer';
+import { DustParser } from './parser/src/DustParser';
+import { DustEvaluatorVisitor } from './EvaluatorVisitor';
 import { Compiler } from "./Compiler";
 import { VirtualMachine } from "./VirtualMachine";
 
-export class SimpleLangEvaluator extends BasicEvaluator {
+export class DustEvaluator extends BasicEvaluator {
     private executionCount: number;
-    private visitor: SimpleLangEvaluatorVisitor;
+    private visitor: DustEvaluatorVisitor;
     public compiler: Compiler;
     public vm: VirtualMachine;
 
     constructor(conductor: IRunnerPlugin) {
         super(conductor);
         this.executionCount = 0;
-        this.visitor = new SimpleLangEvaluatorVisitor();
+        this.visitor = new DustEvaluatorVisitor();
     }
 
     async evaluateChunk(chunk: string): Promise<void> {
@@ -25,9 +25,9 @@ export class SimpleLangEvaluator extends BasicEvaluator {
         try {
             // Create the lexer and parser
             const inputStream = CharStream.fromString(chunk);
-            const lexer = new SimpleLangLexer(inputStream);
+            const lexer = new DustLexer(inputStream);
             const tokenStream = new CommonTokenStream(lexer);
-            const parser = new SimpleLangParser(tokenStream);
+            const parser = new DustParser(tokenStream);
 
             // Parse the input
             const tree = parser.prog();
@@ -61,4 +61,4 @@ export class SimpleLangEvaluator extends BasicEvaluator {
     }
 }
 
-const {runnerPlugin, conduit} = initialise(SimpleLangEvaluator);
+const {runnerPlugin, conduit} = initialise(DustEvaluator);

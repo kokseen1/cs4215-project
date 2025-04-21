@@ -1,9 +1,9 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, DereferenceContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, StrContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
-import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, DereferenceContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, DustParser, StatementContext, StrContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/DustParser';
+import { DustVisitor } from './parser/src/DustVisitor';
 
-export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
+export class DustEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements DustVisitor<any> {
 
     visitProg(ctx: ProgContext) {
         const stmts = ctx.statement();

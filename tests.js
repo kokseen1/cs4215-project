@@ -1,8 +1,8 @@
-import { SimpleLangEvaluator } from './dist/Evaluator.js';
+import { DustEvaluator } from './dist/Evaluator.js';
 
 const test = async (program, expected_type_or_error, visualize_ownership=false) => {
 
-    const evaluator = new SimpleLangEvaluator()
+    const evaluator = new DustEvaluator()
     const [computed_result, diagon_dag] = await evaluator.testChunk(program, visualize_ownership)
 
     console.log("-----------------------------------------------")

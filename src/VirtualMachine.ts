@@ -1,6 +1,6 @@
 import { Heap } from './Heap';
 import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, pprint } from './Utils';
-import { SimpleLangParser } from './parser/src/SimpleLangParser';
+import { DustParser } from './parser/src/DustParser';
 
 export class VirtualMachine {
     private OS: any[];

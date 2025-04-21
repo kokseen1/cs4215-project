@@ -1,6 +1,6 @@
 import { has_copy_trait, has_move_trait, Traits } from './Traits';
 import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, lookup_type } from './Utils';
-import { SimpleLangParser } from "./parser/src/SimpleLangParser";
+import { DustParser } from "./parser/src/DustParser";
 
 export class Compiler {
     private instrs = [];

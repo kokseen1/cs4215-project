@@ -1,22 +1,22 @@
 import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { SimpleLangLexer } from './parser/src/SimpleLangLexer';
-import { SimpleLangParser } from './parser/src/SimpleLangParser';
-import { SimpleLangEvaluatorVisitor } from './EvaluatorVisitor';
+import { DustLexer } from './parser/src/DustLexer';
+import { DustParser } from './parser/src/DustParser';
+import { DustEvaluatorVisitor } from './EvaluatorVisitor';
 import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
 import { pprint, to_diagon } from './Utils';
 import { resourceLimits } from 'worker_threads';
 
-export class SimpleLangEvaluator {
-    public visitor: SimpleLangEvaluatorVisitor;
+export class DustEvaluator {
+    public visitor: DustEvaluatorVisitor;
     public typeChecker: TypeChecker;
     public compiler: Compiler;
     public vm: VirtualMachine;
     public diagon;
 
     constructor() {
-        this.visitor = new SimpleLangEvaluatorVisitor();
+        this.visitor = new DustEvaluatorVisitor();
     }
 
     async init() {
@@ -26,9 +26,9 @@ export class SimpleLangEvaluator {
 
     public parse_compile_run(chunk, visualize_ownership) {
         const inputStream = CharStream.fromString(chunk);
-        const lexer = new SimpleLangLexer(inputStream);
+        const lexer = new DustLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
-        const parser = new SimpleLangParser(tokenStream);
+        const parser = new DustParser(tokenStream);
 
         // Parse the input
         const tree = parser.prog();

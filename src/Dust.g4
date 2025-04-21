@@ -1,4 +1,4 @@
-grammar SimpleLang;
+grammar Dust;
 
 prog: statement*;
 
@@ -79,20 +79,20 @@ REF: '&';
 MUT: 'mut';
 
 /*
-MUL: '*';
-DIV: '/';
-ADD: '+';
-SUB: '-';
-EQ: '==';
-NEQ: '!=';
-LT: '<';
-GT: '>';
-LE: '<=';
-GE: '>=';
-AND: '&&';
-OR: '||';
-NOT: '!';
-*/
+ MUL: '*';
+ DIV: '/';
+ ADD: '+';
+ SUB: '-';
+ EQ: '==';
+ NEQ: '!=';
+ LT: '<';
+ GT: '>';
+ LE: '<=';
+ GE: '>=';
+ AND: '&&';
+ OR: '||';
+ NOT: '!';
+ */
 
 BOOL: 'true' | 'false';
 INT: [0-9]+;
