@@ -6,6 +6,7 @@ import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
 import { pprint, to_diagon } from './Utils';
+import { resourceLimits } from 'worker_threads';
 
 export class SimpleLangEvaluator {
     public visitor: SimpleLangEvaluatorVisitor;
@@ -23,7 +24,7 @@ export class SimpleLangEvaluator {
         this.diagon = await Diagon.init();
     }
 
-    public parse_compile_run(chunk) {
+    public parse_compile_run(chunk, visualize_ownership) {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new SimpleLangLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -53,11 +54,13 @@ export class SimpleLangEvaluator {
         // Compile the program
         const [instrs, ownership_dag] =
             this.compiler.compile_program(prog);
-
-        //const diagon_dag = this.diagon.translate.graphDAG(
-        //    to_diagon(ownership_dag));
-        //console.log("Ownership visualization:");
-        //console.log(diagon_dag || "no ownership moved");
+        
+        if (visualize_ownership) {
+            const diagon_dag = this.diagon.translate.graphDAG(
+                to_diagon(ownership_dag));
+            console.log("Ownership visualization:");
+            console.log(diagon_dag || "no ownership moved");
+        }
 
         // Print the instructions
         // instrs.map((e, i) => {
@@ -72,7 +75,16 @@ export class SimpleLangEvaluator {
 
     async evaluateChunk(chunk: string) {
         await this.init();
-        const result = this.parse_compile_run(chunk);
+        const result = this.parse_compile_run(chunk, false);
         console.log(`Result of expression: ${result}`);
+    }
+
+    async testChunk(chunk: string, visualize_ownership) {
+        try {
+            await this.init()
+            return this.parse_compile_run(chunk, visualize_ownership)
+        } catch (e) {
+            return e + ""
+        }
     }
 }

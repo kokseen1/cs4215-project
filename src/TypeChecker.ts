@@ -449,9 +449,7 @@ export class TypeChecker {
     }
 
     private type = (comp, te, rc) => {
-        if (!(comp.tag in this.type_comp)) {
-            console.log(comp.tag)
-        }
+        // console.log(comp.tag)
         return this.type_comp[comp.tag](comp, te, rc)
     }
 
@@ -513,7 +511,7 @@ export class TypeChecker {
                 })
 
                 const extended_te = this.extend_type_environment(decls.map(comp => comp.sym), vals, te)
-                
+
                 const extended_rc = this.deep_copy_type_environment(
                     this.extend_type_environment(decls.map(comp => comp.sym), vals, rc
                 ))

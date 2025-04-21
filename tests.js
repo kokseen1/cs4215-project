@@ -1,27 +1,28 @@
 import { SimpleLangEvaluator } from './dist/Evaluator.js';
 
-const test = async (program, expected_type_or_error) => {
-    let t
-    try {
-        const evaluator = new SimpleLangEvaluator()
-        await evaluator.init()
-        t = evaluator.parse_compile_run(program)
-    } catch (x) {
-        t = x + ""
-    }
+const test = async (program, expected_type_or_error, visualize_ownership=false) => {
 
-    if (t === expected_type_or_error) {
+    const evaluator = new SimpleLangEvaluator()
+    const computed_result = await evaluator.testChunk(program, visualize_ownership)
+
+    console.log("-----------------------------------------------")
+    if (computed_result === expected_type_or_error) {
+
+        if (visualize_ownership) {
+            console.log(program)
+        }
         console.log("pass")
     } else {
-        console.log()
         console.log("fail!")
         console.log(program)
         console.log("expected result: " + expected_type_or_error)
-        console.log("computed result: " + t)
+        console.log("computed result: " + computed_result)
     }
+    console.log()
 }
 
-// test: code constructs (i.e. assignments, declarations, conditionals, loops etc)
+// test assignments, declarations, conditionals, loops etc
+const test_code_constructs = () => {
 
 test("1;", 1);
 
@@ -33,17 +34,17 @@ test(
     `
 let y = 4; 
 {
-  let x = y + 7; 
-  x * 2;
+let x = y + 7; 
+x * 2;
 }
-  `,
+`,
     22,
 );
 
 test(
     `
 fn f() -> i32 {
-  return 1;
+return 1;
 }
 f();
 `,
@@ -53,7 +54,7 @@ f();
 test(
     `
 fn f(x: i32) -> i32 {
-  return x;
+return x;
 }
 f(33);
 `,
@@ -63,7 +64,7 @@ f(33);
 test(
     `
 fn f(x: i32, y: i32) -> i32 {
-  return x - y;
+return x - y;
 }
 f(33, 22);
 `,
@@ -87,14 +88,14 @@ fact(10);
 test(
     `
 fn fact(n: i32) -> i32 {
-  return fact_iter(n, 1, 1);
+return fact_iter(n, 1, 1);
 }
 fn fact_iter(n: i32, i: i32, acc: i32) -> i32 {
-  if (i > n) {
-      return acc;
-  } else {
-      return fact_iter(n, i + 1, acc * i);
-  }
+if (i > n) {
+    return acc;
+} else {
+    return fact_iter(n, i + 1, acc * i);
+}
 }
 fact(4);
 `,
@@ -104,14 +105,14 @@ fact(4);
 test(
     `
 fn fact(n: i32) -> i32 {
-  return fact_iter(n, 1, 1);
+return fact_iter(n, 1, 1);
 }
 fn fact_iter(n: i32, i: i32, acc: i32) -> i32 {
-  if i > n {
+if i > n {
     return acc;
-  } else {
+} else {
     return fact_iter(n, i + 1, acc * i);
-  }
+}
 }
 fact(4);
 `,
@@ -133,12 +134,12 @@ const loop2 = `
 let mut x = 0;
 let mut i = 0;
 while (i < 100) {
-  let mut j = 0;
-  while (j < 100) {
-      x = x + i + j;
-      j = j + 1;
-  }
-  i = i + 1;
+let mut j = 0;
+while (j < 100) {
+    x = x + i + j;
+    j = j + 1;
+}
+i = i + 1;
 }
 x;
 `;
@@ -148,8 +149,8 @@ const loop3 = `
 let x = 0;
 let mut i = 0;
 while (i < 1000) {
-  let y = 1;
-  i = i + 1;
+let y = 1;
+i = i + 1;
 }
 i;
 `;
@@ -169,8 +170,8 @@ test(`1 == 1;`, true);
 test(
     `
 fn f(x: i32) -> i32 {
-  let y = 5;
-  return x + y;
+let y = 5;
+return x + y;
 }
 f(4);
 `,
@@ -182,100 +183,16 @@ test(`String::from("a");`, "a");
 test(
     `
 fn what_is_the_best_programming_language() -> String {
-  return String::from("Rust");
+return String::from("Rust");
 }
 what_is_the_best_programming_language();
 `,
     "Rust",
 );
 
-
-// test: ownership
-
-test(`
-let x = String::from("abc");
-let y = x; // x loses ownership
-x;
-    `, "Error: Error: use of moved value x");
-
-
-test(`
-let x = String::from("abc");
-let y = x; // x loses ownership
-y;
-    `, "abc");
-
-test(`
-fn f(a: String) { // void return
-    // a gains ownership
-    // and is dropped upon exit of fn scope
 }
 
-let x = String::from("abc");
-f(x); // x loses ownership
-x;
-    `, "Error: Error: use of moved value x");
-
-test(`
-fn f(a: String) -> String {
-    // a gains ownership
-    return a; // returns ownership to caller
-}
-
-let x = String::from("abc");
-let y = f(x);
-y;
-    `, "abc");
-
-test(`
-let x = String::from("abc");
-{
-    let y = x;
-}
-    x;
-    `, "Error: Error: use of moved value x");
-
-test(`
-fn g(b: String) -> String {
-    // b gains ownership
-    let c = String::from("xyz");
-    return c;
-}
-
-fn f(a: String) -> String {
-    // a gains ownership
-    let b = g(a);
-    return b;
-}
-
-let x = String::from("abc");
-let y = f(x);
-y;
-    `, "xyz");
-
-test(`
-let a = String::from("apple");
-let b = String::from("banana");
-
-if true {
-    let c = a; // ownership of a moves to c
-    if true {
-        let d = b; // ownership of b moves to d
-    }
-}
-b; // attempting to use b after ownership has been moved
-    `, "Error: Error: use of moved value b");
-
-test(`let mut a = String::from("apple");
-if true {
-    let b = a; // ownership of a moves to b
-    a = String::from("orange"); // reassigns ownership of a
-}
-a; // ownership has been reassigned, so a can still be used
-    `, "orange");
-
-
-// test: type mismatch
+const test_type_mismatch = () => {
 
 // works (correctly typed declaration)
 test(`let mut y:i32 = 5;`, 5);
@@ -374,9 +291,10 @@ let x = 5;
 test(x);
 `, `Error: type error in function declaration; declared return type: void, actual return type: i32`);
 
+}
 
-// test: mutability
-
+const test_mutability = () => {
+    
 // work (redeclaring (im/mutable) as (im/mutable) 4-ways)
 test(`
 let a = 1;
@@ -436,8 +354,9 @@ fn test(a: & i32, b: bool) {
 }
 `, `Error: cannot assign to \`*a\`, which is behind a \`&\` reference`);
 
+}
 
-// test: borrowing
+const test_borrowing = () => {
 
 // works (multiple immutable borrow an IMMUTABLE var)
 test(`
@@ -486,9 +405,10 @@ let y = & x; // immutable borrow
 let z = & mut x; // mutable borrow (error)
 `, `Error: cannot borrow \`x\` as mutable because it is also borrowed as immutable`);
 
+}
 
-// test: borrowing (blocks)
-
+const test_borrowing_with_blocks = () => {
+    
 // works (scoped borrowing)
 test(`
 let mut x = 5;
@@ -510,9 +430,10 @@ let mut x = 5;
 let y = & mut x;
 `, `Error: cannot borrow \`x\` as mutable more than once at a time`);
 
+}
 
-// test: borrowing (functions)
-
+const test_borrowing_with_functions = () => {
+    
 // error (multiple mutable borrows, involving function argument)
 test(`
 fn test(mut a: & mut i32) {}
@@ -548,8 +469,10 @@ test(& mut x);
 test(& mut x); // should work!
 `, undefined);
 
+}
 
-// test: lifetimes (blocks)
+const test_lifetimes_with_blocks = () => {
+
 test(`
 let mut y = 3;
 let mut r = &mut y;
@@ -568,3 +491,99 @@ let mut r = &mut y;
     r = &mut x; // works since x lifetime is not over
 }
 `, 5);
+
+}
+
+const test_ownership = (visualize_ownership=true) => {
+
+test(`
+let x = String::from("abc");
+let y = x; // x loses ownership
+x;
+    `, "Error: Error: use of moved value x", visualize_ownership);
+
+test(`
+let x = String::from("abc");
+let y = x; // x loses ownership
+y;
+    `, "abc", visualize_ownership);
+
+test(`
+fn f(a: String) { // void return
+    // a gains ownership
+    // and is dropped upon exit of fn scope
+}
+
+let x = String::from("abc");
+f(x); // x loses ownership
+x;
+    `, "Error: Error: use of moved value x", visualize_ownership);
+
+test(`
+fn f(a: String) -> String {
+    // a gains ownership
+    return a; // returns ownership to caller
+}
+
+let x = String::from("abc");
+let y = f(x);
+y;
+    `, "abc", visualize_ownership);
+
+test(`
+let x = String::from("abc");
+{
+    let y = x;
+}
+    x;
+    `, "Error: Error: use of moved value x", visualize_ownership);
+
+test(`
+fn g(b: String) -> String {
+    // b gains ownership
+    let c = String::from("xyz");
+    return c;
+}
+
+fn f(a: String) -> String {
+    // a gains ownership
+    let b = g(a);
+    return b;
+}
+
+let x = String::from("abc");
+let y = f(x);
+y;
+    `, "xyz", visualize_ownership);
+
+test(`
+let a = String::from("apple");
+let b = String::from("banana");
+
+if true {
+    let c = a; // ownership of a moves to c
+    if true {
+        let d = b; // ownership of b moves to d
+    }
+}
+b; // attempting to use b after ownership has been moved
+    `, "Error: Error: use of moved value b", visualize_ownership);
+
+test(`let mut a = String::from("apple");
+if true {
+    let b = a; // ownership of a moves to b
+    a = String::from("orange"); // reassigns ownership of a
+}
+a; // ownership has been reassigned, so a can still be used
+    `, "orange", visualize_ownership);
+    
+}
+
+test_code_constructs()
+test_type_mismatch()
+test_mutability()
+test_borrowing()
+test_borrowing_with_blocks()
+test_borrowing_with_functions()
+test_lifetimes_with_blocks()
+test_ownership()
