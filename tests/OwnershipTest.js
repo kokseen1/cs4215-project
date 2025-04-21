@@ -6,7 +6,7 @@ export const test_ownership = (visualize_ownership = true) => {
 let x = String::from("abc");
 let y = x; // x loses ownership
 x;
-    `, "Error: Error: use of moved value x", visualize_ownership);
+    `, "Error: use of moved value x", visualize_ownership);
 
     test(`
 let x = String::from("abc");
@@ -23,7 +23,7 @@ fn f(a: String) { // void return
 let x = String::from("abc");
 f(x); // x loses ownership
 x;
-    `, "Error: Error: use of moved value x", visualize_ownership);
+    `, "Error: use of moved value x", visualize_ownership);
 
     test(`
 fn f(a: String) -> String {
@@ -42,7 +42,7 @@ let x = String::from("abc");
     let y = x;
 }
     x;
-    `, "Error: Error: use of moved value x", visualize_ownership);
+    `, "Error: use of moved value x", visualize_ownership);
 
     test(`
 fn g(b: String) -> String {
@@ -73,7 +73,7 @@ if true {
     }
 }
 b; // attempting to use b after ownership has been moved
-    `, "Error: Error: use of moved value b", visualize_ownership);
+    `, "Error: use of moved value b", visualize_ownership);
 
     test(`let mut a = String::from("apple");
 if true {
