@@ -81,6 +81,11 @@ export class Heap {
     // private HEAPBOTTOM = 0
 
     public free_node = (addr) => {
+        // Free string from string pool
+        if (this.is_String(addr)) {
+            this.heap_free_string(addr);
+        }
+
         // point the new node to the head of the free list
         this.heap_set(addr, this.free)
         // set it as the new head
@@ -449,6 +454,10 @@ export class Heap {
         this.stringPool[this.heap_get_string_hash(address)]
         [this.heap_get_string_index(address)]
             .string;
+
+    private heap_free_string = (address) =>
+        this.stringPool[this.heap_get_string_hash(address)]
+            .splice([this.heap_get_string_index(address)], 1);
 
     // environment frame
     // [1 byte tag, 4 bytes unused, 
