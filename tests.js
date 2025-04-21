@@ -1,26 +1,9 @@
-import { DustEvaluator } from './dist/Evaluator.js';
+import { LocalDustEvaluator } from './dist/LocalEvaluator.js';
 
 const test = async (program, expected_type_or_error, visualize_ownership=false) => {
 
-    const evaluator = new DustEvaluator()
-    const [computed_result, diagon_dag] = await evaluator.testChunk(program, visualize_ownership)
-
-    console.log("-----------------------------------------------")
-    if (computed_result === expected_type_or_error) {
-
-        if (visualize_ownership && diagon_dag) {
-            console.log(program)
-            console.log("Ownership visualization:");
-            console.log(diagon_dag);
-        }
-        console.log("pass")
-    } else {
-        console.log("fail!")
-        console.log(program)
-        console.log("expected result: " + expected_type_or_error)
-        console.log("computed result: " + computed_result)
-    }
-    console.log()
+    const evaluator = new LocalDustEvaluator();
+    await evaluator.testChunk(program, expected_type_or_error, visualize_ownership);
 }
 
 // test assignments, declarations, conditionals, loops etc

@@ -30,17 +30,29 @@ export class LocalDustEvaluator {
         console.log(await this.generate_visualization(ownership_dag));
     }
 
-    async testChunk(chunk: string, visualize_ownership) {
+    async testChunk(chunk: string, expected_type_or_error, visualize_ownership) {
         let result, ownership_dag;
-
         try {
             [result, ownership_dag] = this.evaluator.evaluate(chunk);
-        } catch (e) {
-            return [e + "", false]
+        }
+        catch (e) {
+            result = e + "";
         }
 
-        if (visualize_ownership) {
-            return [result, await this.generate_visualization(ownership_dag)];
+        if (result === expected_type_or_error) {
+            if (visualize_ownership && ownership_dag) {
+                const diagon_dag = await this.generate_visualization(ownership_dag)
+                console.log(chunk)
+                console.log("Ownership visualization:")
+                console.log(diagon_dag)
+            }
+            console.log("pass")
+        } else {
+            console.log("fail!")
+            console.log(chunk)
+            console.log("expected result: " + expected_type_or_error)
+            console.log("computed result: " + result)
         }
+        console.log("-----------------------------------------------")
     }
 }
