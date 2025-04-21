@@ -70,7 +70,7 @@ export class TypeChecker {
     // is a type environment.
     private empty_type_environment = null
     private global_type_environment = pair(this.global_type_frame, this.empty_type_environment)
-    private global_reference_environment = pair(this.global_type_frame, this.empty_type_environment)
+    private reference_counting_environment = pair({}, null) // denoted as rc
 
     // returns `void` if type is unspecified
     private get_type = (type_info) => {
@@ -257,8 +257,11 @@ export class TypeChecker {
                                 comp.prms.map(p => p.sym),
                                 func_type.params,
                                 te)
-                const extended_rc = this.deep_copy_type_environment(extended_te)
-
+                const extended_rc = this.deep_copy_type_environment(this.extend_type_environment(
+                    comp.prms.map(comp => comp.sym), 
+                    func_type.params,
+                    rc
+                ))
                 const body_type = this.type_fun_body(comp.body, extended_te, extended_rc)
                 if (this.equal_type(body_type, func_type.ret)) {
                     return "void"
@@ -285,7 +288,7 @@ export class TypeChecker {
                 } else { // user-defined functions
 
                     // implement borrow checking for symbols that are passed to functions
-                    rc = this.deep_copy_type_environment(te)
+                    rc = this.deep_copy_type_environment(rc)
                     comp.args.map((arg, i) => {
                         const borrow = arg.ref
                         if ("sym" in arg && borrow) {
@@ -400,44 +403,45 @@ export class TypeChecker {
                 let decls = ("stmts" in comp.body ? comp.body.stmts : [comp.body])
                                 .filter(comp => comp.tag === "let" || comp.tag === "fun")
 
-                const extended_te = this.extend_type_environment(
-                                decls.map(comp => comp.sym),
-                                decls.map(comp => {
-                                    if (comp.tag === "fun") {
-                                        /* map fn `f` to its param types `i32` & `bool` and ret type `void`
-                                        type: {
-                                            params: [  // equivalent to LHS of declaration
-                                                { mut: false, ref: false, type: 'i32' },
-                                                { mut: false, ref: false, type: 'bool' }
-                                            ],
-                                            ret: 'void'
-                                        } */
+                const vals = decls.map(comp => {
+                    if (comp.tag === "fun") {
+                        /* map fn `f` to its param types `i32` & `bool` and ret type `void`
+                        type: {
+                            params: [  // equivalent to LHS of declaration
+                                { mut: false, ref: false, type: 'i32' },
+                                { mut: false, ref: false, type: 'bool' }
+                            ],
+                            ret: 'void'
+                        } */
 
-                                        // handle params types declared as references (i.e. can borrow)
-                                        // handle mut, which is on LHS (instead of RHS) of func signature
-                                        let params = comp.prms.map(
-                                            ({ mut: outer_mut, sym: sym, type: { tag, ref, mut, ...fields } }) => {
-                                                return {
-                                                    ...fields,
-                                                    sym: sym,
-                                                    mut: outer_mut,
-                                                    borrow: ref,
-                                                    borrow_type: mut ? "mutable" : "immutable",
-                                                    type: this.get_type(fields.type),
-                                                    param: true
-                                                }
-                                            }
-                                        )
+                        // handle params types declared as references (i.e. can borrow)
+                        // handle mut, which is on LHS (instead of RHS) of func signature
+                        let params = comp.prms.map(
+                            ({ mut: outer_mut, sym: sym, type: { tag, ref, mut, ...fields } }) => {
+                                return {
+                                    ...fields,
+                                    sym: sym,
+                                    mut: outer_mut,
+                                    borrow: ref,
+                                    borrow_type: mut ? "mutable" : "immutable",
+                                    type: this.get_type(fields.type),
+                                    param: true
+                                }
+                            }
+                        )
 
-                                        return { "type": {
-                                            "params": params,
-                                            "ret": this.get_type(comp.retType)
-                                        }}
-                                    }
-                                    return { "type": this.get_type(comp.type) }
-                                }),
-                                te)
-                const extended_rc = this.deep_copy_type_environment(extended_te)
+                        return { "type": {
+                            "params": params,
+                            "ret": this.get_type(comp.retType)
+                        }}
+                    }
+                    return { "type": this.get_type(comp.type) }
+                })
+
+                const extended_te = this.extend_type_environment(decls.map(comp => comp.sym), vals, te)
+                const extended_rc = this.deep_copy_type_environment(
+                    this.extend_type_environment(decls.map(comp => comp.sym), vals, rc
+                ))
                 return this.type(comp.body, extended_te, extended_rc)
             },
         ret:
@@ -489,28 +493,30 @@ export class TypeChecker {
                 let decls = ("stmts" in comp.body ? comp.body.stmts : [comp.body])
                                 .filter(comp => comp.tag === "let" || comp.tag === "fun")
                 
-                const extended_te = this.extend_type_environment(
-                                decls.map(comp => comp.sym),
-                                decls.map(comp => {
-                                    if (comp.tag === "fun") {
-                                        // handle params types declared as references (i.e. can borrow)
-                                        // handle mut, which is on LHS (instead of RHS) of func signature
-                                        let params = comp.prms.map(({ mut: mut, type: { tag, ref, ...fields } }) => ({
-                                                        ...fields,
-                                                        mut: mut,
-                                                        borrow: ref,
-                                                        type: this.get_type(fields.type)
-                                                    }))
+                const vals = decls.map(comp => {
+                    if (comp.tag === "fun") {
+                        // handle params types declared as references (i.e. can borrow)
+                        // handle mut, which is on LHS (instead of RHS) of func signature
+                        let params = comp.prms.map(({ mut: mut, type: { tag, ref, ...fields } }) => ({
+                                        ...fields,
+                                        mut: mut,
+                                        borrow: ref,
+                                        type: this.get_type(fields.type)
+                                    }))
 
-                                        return { "type": {
-                                            "params": params,
-                                            "ret": this.get_type(comp.retType)
-                                        }}
-                                    }
-                                    return { "type": this.get_type(comp.type) }
-                                }),
-                                te)
-                const extended_rc = this.deep_copy_type_environment(extended_te)
+                        return { "type": {
+                            "params": params,
+                            "ret": this.get_type(comp.retType)
+                        }}
+                    }
+                    return { "type": this.get_type(comp.type) }
+                })
+
+                const extended_te = this.extend_type_environment(decls.map(comp => comp.sym), vals, te)
+                
+                const extended_rc = this.deep_copy_type_environment(
+                    this.extend_type_environment(decls.map(comp => comp.sym), vals, rc
+                ))
                 return this.type(comp.body, extended_te, extended_rc)
             },
         ret:
@@ -530,7 +536,7 @@ export class TypeChecker {
     // type program into instruction array instrs,
     // after initializing wc and instrs
     public type_program = (program) => {
-        this.type(program, this.global_type_environment, this.global_reference_environment)
+        this.type(program, this.global_type_environment, this.reference_counting_environment)
         //console.log("[[[SUCCESS]]]")
         return [true, program]
     };
