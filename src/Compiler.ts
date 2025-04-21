@@ -9,7 +9,7 @@ export class Compiler {
     private ce_size_bef_fun = -1;
     private builtin_compile_frame
     private constant_compile_frame
-    private last_drop_positions
+    private last_drop_positions = [];
 
     constructor(builtins, constants) {
         this.builtin_compile_frame = Object.keys(builtins)
