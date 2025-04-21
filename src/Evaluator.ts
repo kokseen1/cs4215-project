@@ -55,11 +55,11 @@ export class SimpleLangEvaluator {
         const [instrs, ownership_dag] =
             this.compiler.compile_program(prog);
         
+
+        let diagon_dag;
         if (visualize_ownership) {
-            const diagon_dag = this.diagon.translate.graphDAG(
-                to_diagon(ownership_dag));
-            console.log("Ownership visualization:");
-            console.log(diagon_dag || "no ownership moved");
+            diagon_dag = this.diagon.translate.graphDAG(
+                to_diagon(ownership_dag)) || "no ownership moved";
         }
 
         // Print the instructions
@@ -70,13 +70,17 @@ export class SimpleLangEvaluator {
 
         // Evaluate the instructions
         const result = this.vm.run(instrs);
-        return result;
+        return [result, diagon_dag];
     }
 
     async evaluateChunk(chunk: string) {
         await this.init();
-        const result = this.parse_compile_run(chunk, false);
+        const [result, diagon_dag] = this.parse_compile_run(chunk, false);
         console.log(`Result of expression: ${result}`);
+        if (diagon_dag) {
+            console.log("Ownership visualization:");
+            console.log(diagon_dag);
+        }
     }
 
     async testChunk(chunk: string, visualize_ownership) {
@@ -84,7 +88,7 @@ export class SimpleLangEvaluator {
             await this.init()
             return this.parse_compile_run(chunk, visualize_ownership)
         } catch (e) {
-            return e + ""
+            return [e + "", false]
         }
     }
 }
