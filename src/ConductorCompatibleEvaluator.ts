@@ -16,7 +16,7 @@ export class ConductorCompatibleDustEvaluator extends BasicEvaluator {
     async evaluateChunk(chunk: string): Promise<void> {
         this.executionCount++;
         try {
-            const result = this.evaluator.evaluate(chunk);
+            const [result, ownership_dag] = this.evaluator.evaluate(chunk);
 
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result.toString()}`);
