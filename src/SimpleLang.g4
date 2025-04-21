@@ -17,7 +17,7 @@ statement:
 
 letDecl: 'let' MUT? ID (':' type)? ('=' expression)? ';';
 
-assign: ID '=' expression ';';
+assign: DEREF? ID '=' expression ';';
 
 funcDef: 'fn' ID '(' (paramList)? ')' ('->' type)? block;
 
@@ -62,6 +62,7 @@ expression:
 	| ID '(' (argList)? ')'													# FunctionCall
 	| REF MUT expression													# MutableReference
 	| REF expression														# Reference
+	| DEREF expression														# Dereference
 	| 'Box' '::' 'new' '(' expression ')'									# HeapAlloc
 	| 'Rc' '::' 'new' '(' expression ')'									# RcAlloc
 	| op = ('!' | '-') expression											# UnaryOp
@@ -73,9 +74,11 @@ expression:
 
 argList: expression (',' expression)*;
 
+DEREF: '*';
 REF: '&';
 MUT: 'mut';
 
+/*
 MUL: '*';
 DIV: '/';
 ADD: '+';
@@ -89,6 +92,8 @@ GE: '>=';
 AND: '&&';
 OR: '||';
 NOT: '!';
+*/
+
 BOOL: 'true' | 'false';
 INT: [0-9]+;
 STRING: '"' .*? '"';

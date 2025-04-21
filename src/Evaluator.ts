@@ -6,6 +6,7 @@ import { VirtualMachine } from './VirtualMachine';
 import { Compiler } from './Compiler';
 import { TypeChecker } from './TypeChecker';
 import { pprint, to_diagon } from './Utils';
+import { resourceLimits } from 'worker_threads';
 
 export class SimpleLangEvaluator {
     public visitor: SimpleLangEvaluatorVisitor;
@@ -23,7 +24,7 @@ export class SimpleLangEvaluator {
         this.diagon = await Diagon.init();
     }
 
-    public parse_compile_run(chunk) {
+    public parse_compile_run(chunk, visualize_ownership) {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new SimpleLangLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -34,7 +35,7 @@ export class SimpleLangEvaluator {
 
         // Convert the parsed tree into a json-like format
         const prog = this.visitor.visit(tree);
-        console.log(JSON.stringify(prog));
+        //console.log(JSON.stringify(prog));
 
         // Instantiate the TypeChecker
         this.typeChecker = new TypeChecker();
@@ -47,17 +48,19 @@ export class SimpleLangEvaluator {
             new Compiler(this.vm.get_builtins(), this.vm.get_constants());
 
         // Type check the program
-        // const [is_success, checked_prog] =
-        //     this.typeChecker.type_program(prog);
+        const [is_success, checked_prog] =
+            this.typeChecker.type_program(prog);
 
         // Compile the program
         const [instrs, ownership_dag] =
             this.compiler.compile_program(prog);
-
-        const diagon_dag = this.diagon.translate.graphDAG(
-            to_diagon(ownership_dag));
-        console.log("Ownership visualization:");
-        console.log(diagon_dag || "no ownership moved");
+        
+        if (visualize_ownership) {
+            const diagon_dag = this.diagon.translate.graphDAG(
+                to_diagon(ownership_dag));
+            console.log("Ownership visualization:");
+            console.log(diagon_dag || "no ownership moved");
+        }
 
         // Print the instructions
         // instrs.map((e, i) => {
@@ -72,7 +75,16 @@ export class SimpleLangEvaluator {
 
     async evaluateChunk(chunk: string) {
         await this.init();
-        const result = this.parse_compile_run(chunk);
+        const result = this.parse_compile_run(chunk, false);
         console.log(`Result of expression: ${result}`);
+    }
+
+    async testChunk(chunk: string, visualize_ownership) {
+        try {
+            await this.init()
+            return this.parse_compile_run(chunk, visualize_ownership)
+        } catch (e) {
+            return e + ""
+        }
     }
 }

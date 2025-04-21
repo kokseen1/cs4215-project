@@ -75,7 +75,7 @@ export class Compiler {
         const sym = this.get_symbol(comp)
         const ctv = this.get_compile_time_value(ce, sym);
         ctv.owner = true;
-        console.log(sym + " gained ownership");
+        //console.log(sym + " gained ownership");
     }
 
     private basic_lose = (ce, comp) => {
@@ -86,7 +86,7 @@ export class Compiler {
         if (ctv.owner === false)
             error(sym + " is already moved")
         ctv.owner = false;
-        console.log(sym + " lost ownership");
+        //console.log(sym + " lost ownership");
     }
 
     private get_cte_type = (ce, sym) => {
@@ -141,8 +141,8 @@ export class Compiler {
             || (from.fun?.sym ? from.fun.sym + "()" : undefined)
             || from.sym)
         const to_sym = this.get_symbol(to);
-        console.log("moved owner from " +
-            from_sym + " (" + from.tag + ") to " + to_sym);
+        //console.log("moved owner from " +
+        //    from_sym + " (" + from.tag + ") to " + to_sym);
         this.add_ownership_dag(from_sym, to_sym);
     }
 

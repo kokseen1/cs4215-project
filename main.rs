@@ -1,6 +1,8 @@
-fn test(mut a: i32) {
-    a = 5; 
-}
+let mut x = 5;
+{
+    let z = & mut x;
+    {
 
-let x = 7;
-test(x);
+    }
+}
+let y = & mut x;

@@ -1,6 +1,6 @@
 import { error } from './Utils';
 import { AbstractParseTreeVisitor } from 'antlr4ng';
-import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, StrContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
+import { AddSubContext, ArgListContext, AssignContext, BlockContext, BoolContext, CompareContext, DereferenceContext, ExpressionContext, ExpressionStmtContext, FuncDefContext, FunctionCallContext, IdContext, IfStmtContext, IntContext, LetDeclContext, LogicalContext, MulDivContext, MutableReferenceContext, ParamContext, ParamListContext, ParensContext, ProgContext, ReferenceContext, ReturnStmtContext, SimpleLangParser, StatementContext, StrContext, TypeContext, UnaryOpContext, WhileStmtContext } from './parser/src/SimpleLangParser';
 import { SimpleLangVisitor } from './parser/src/SimpleLangVisitor';
 
 export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> implements SimpleLangVisitor<any> {
@@ -136,6 +136,13 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
         return nam
     }
 
+    visitDereference(ctx: DereferenceContext) {
+        const expr = ctx.expression();
+        const nam = this.visit(expr); // assume expression can only be Id
+        nam.deref = true;
+        return nam
+    }
+
     visitReturnStmt(ctx: ReturnStmtContext) {
         const expr = ctx.expression();
         return {
@@ -175,9 +182,11 @@ export class SimpleLangEvaluatorVisitor extends AbstractParseTreeVisitor<any> im
     visitAssign(ctx: AssignContext) {
         const expr = ctx.expression();
         const id = ctx.ID().getText();
+        const deref = ctx.DEREF(); // optional, null if unspecified
         return {
             tag: "assmt",
             sym: id,
+            deref: deref !== null,
             expr: this.visit(expr)
         }
     }
