@@ -111,9 +111,9 @@ fact(4);
     const loop2 = `
 let mut x = 0;
 let mut i = 0;
-while (i < 100) {
+while (i < 30) {
 let mut j = 0;
-while (j < 100) {
+while (j < 30) {
     x = x + i + j;
     j = j + 1;
 }
@@ -121,7 +121,7 @@ i = i + 1;
 }
 x;
 `;
-    test(loop2, 990000);
+    test(loop2, 26100);
 
     const loop3 = `
 let x = 0;

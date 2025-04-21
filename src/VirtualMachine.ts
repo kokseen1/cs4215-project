@@ -236,7 +236,7 @@ export class VirtualMachine {
 
     public run(instrs) {
         this.instrs = instrs
-        this.initialize_machine(100000000);
+        this.initialize_machine(10000000);
         //print_code(instrs)
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
