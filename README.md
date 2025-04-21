@@ -34,7 +34,7 @@ git clone https://github.com/kokseen1/dust.git
 
 ```bash
 yarn install
-yarn generate_parser
+yarn generate-parser
 yarn build-conductor
 ```
 
@@ -58,7 +58,7 @@ To use Dust in the SourceAcademy playground:
 
 ```bash
 yarn install
-yarn generate_parser
+yarn generate-parser
 yarn build
 ```
 
