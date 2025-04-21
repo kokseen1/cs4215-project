@@ -228,12 +228,14 @@ export class Compiler {
                 this.compile(comp.pred, ce)
                 const jump_on_false_instruction: any = { tag: 'JOF' }
                 this.instrs[this.wc++] = jump_on_false_instruction
-                this.compile(comp.cons, ce)
+                // TODO: ownership branching
+                const ce_copy = structuredClone(ce);
+                this.compile(comp.cons, ce_copy)
                 const goto_instruction: any = { tag: 'GOTO' }
                 this.instrs[this.wc++] = goto_instruction;
                 const alternative_address = this.wc;
                 jump_on_false_instruction.addr = alternative_address;
-                this.compile(comp.alt, ce)
+                this.compile(comp.alt, ce_copy)
                 goto_instruction.addr = this.wc
             },
         while:
