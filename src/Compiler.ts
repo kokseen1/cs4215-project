@@ -68,6 +68,24 @@ export class Compiler {
         return push([...e], vs)
     }
 
+    private merge_ce = (ce, ce_copy) => {
+        for (let i = 0; i < ce.length; i++) {
+            const ce_frame = ce[i];
+            const ce_copy_frame = ce_copy[i];
+
+            for (const val of ce_copy_frame) {
+                const found = ce_frame.find(e => e.sym === val.sym && e.type === val.type);
+                if (found) {
+                    // overwrite with stronger precedence
+                    if (val.owner === false)
+                        found.owner = val.owner;
+                } else {
+                    ce_frame.push(val)
+                }
+            }
+        }
+    }
+
 
     private gain_ownership = (ce, comp) => {
         const sym = this.get_symbol(comp)
@@ -224,14 +242,14 @@ export class Compiler {
                 this.compile(comp.pred, ce)
                 const jump_on_false_instruction: any = { tag: 'JOF' }
                 this.instrs[this.wc++] = jump_on_false_instruction
-                // TODO: ownership branching
                 const ce_copy = structuredClone(ce);
-                this.compile(comp.cons, ce_copy)
+                this.compile(comp.cons, ce)
                 const goto_instruction: any = { tag: 'GOTO' }
                 this.instrs[this.wc++] = goto_instruction;
                 const alternative_address = this.wc;
                 jump_on_false_instruction.addr = alternative_address;
                 this.compile(comp.alt, ce_copy)
+                this.merge_ce(ce, ce_copy);
                 goto_instruction.addr = this.wc
             },
         while:
