@@ -99,25 +99,11 @@ export class Compiler {
         ctv.type = type;
     }
 
-    private binop_lose = (ce, comp) => {
-        // TODO: ensure working for recursive nested binop
-        const frst = comp.frst;
-        const scnd = comp.scnd;
-        this.lose_ownership(ce, frst);
-        this.lose_ownership(ce, scnd);
-    }
-
     private lose_ownership = (ce, comp) => {
         switch (comp.tag) {
             case 'nam':
             case 'fun':
                 this.basic_lose(ce, comp);
-                break;
-            case 'binop':
-                this.binop_lose(ce, comp);
-                break;
-            case 'unop':
-                // TODO: lose for unop
                 break;
             // cases such as 'lit' do not need to lose ownership
             default:
