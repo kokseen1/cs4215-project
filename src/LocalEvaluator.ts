@@ -23,11 +23,13 @@ export class LocalDustEvaluator {
             to_diagon(ownership_dag)) || "no ownership moved";
     }
 
-    async evaluateChunk(chunk: string) {
+    async evaluateChunk(chunk: string, visualize_ownership: boolean = false) {
         const [result, ownership_dag] = this.evaluator.evaluate(chunk);
         console.log(`Result of expression: ${result}`);
-        console.log("Ownership visualization:");
-        console.log(await this.generate_visualization(ownership_dag));
+        if (visualize_ownership) {
+            console.log("Ownership visualization:");
+            console.log(await this.generate_visualization(ownership_dag));
+        }
     }
 
     async testChunk(chunk: string, expected_type_or_error, visualize_ownership) {
