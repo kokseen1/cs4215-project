@@ -9,6 +9,7 @@ export class Compiler {
     private ce_size_bef_fun = -1;
     private builtin_compile_frame
     private constant_compile_frame
+    private last_drop_positions
 
     constructor(builtins, constants) {
         this.builtin_compile_frame = Object.keys(builtins)
@@ -129,7 +130,7 @@ export class Compiler {
         // lose first then gain back, to handle `x = x - 1;`
         this.lose_ownership(ce, from)
         if (this.get_compile_time_value(ce, to.sym).owner === true) {
-            // drop if it was already owning something (mutation)
+            // drop if it was already owning something (reassignment)
             const pos = this.compile_time_environment_position(ce, to.sym);
             this.generate_instr(this.make_drop_instr([{
                 sym: to.sym,
@@ -168,6 +169,7 @@ export class Compiler {
                 }
             }
         }
+        this.last_drop_positions = positions;
         return positions;
     }
 
@@ -466,6 +468,8 @@ export class Compiler {
         this.wc = 0;
         this.instrs = [];
         this.compile(program, this.global_compile_environment);
+        // do not drop the last value-producing result
+        this.last_drop_positions.pop();
         this.instrs[this.wc] = { tag: "DONE" };
         return [this.instrs, this.ownership_dag]
     };

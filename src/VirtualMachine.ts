@@ -30,8 +30,13 @@ export class VirtualMachine {
 
     private microcode = {
         LDC:
-            instr =>
-                push(this.OS, this.heap.JS_value_to_address(instr.val)),
+            instr => {
+                const addr = this.heap.JS_value_to_address(instr.val);
+                if (this.heap.is_String(addr)) {
+                    console.log('Allocated "' + instr.val + '" at [' + addr + ']');
+                }
+                return push(this.OS, addr);
+            },
         UNOP:
             instr =>
                 push(this.OS, this.apply_unop(instr.sym, this.OS.pop())),
