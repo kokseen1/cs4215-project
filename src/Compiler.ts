@@ -36,7 +36,7 @@ export class Compiler {
             ? x
             : typeof x === 'object' // let, fun, and param types will store entire comp object
                 ? x.sym || error("Symbol is undefined")
-                : error("Error: cannot get symbol for " + x)
+                : error("cannot get symbol for " + x)
 
 
     // returns the 0-based index of the symbol in the frame
@@ -60,7 +60,7 @@ export class Compiler {
             }
         }
         // cannot find symbol in environment
-        error("Error: cannot find symbol: " + x)
+        error("cannot find symbol: " + x)
     }
 
     private compile_time_environment_extend = (vs, e) => {
@@ -154,7 +154,7 @@ export class Compiler {
 
     private get_droppable_positions = (ce_idx: number, ce) => {
         if (ce_idx === -1)
-            error("Error: unable to get droppable positions")
+            error("unable to get droppable positions")
         const positions = [];
         for (let i = ce_idx; i < ce.length; i++) {
             const frame = ce[i];
@@ -198,7 +198,7 @@ export class Compiler {
             (comp, ce) => {
                 const ctv = this.get_compile_time_value(ce, comp.sym);
                 if (ctv.owner === false)
-                    error("Error: use of moved value " + comp.sym);
+                    error("use of moved value " + comp.sym);
                 comp.inferred_type = ctv.type;
 
                 this.instrs[this.wc++] = {
