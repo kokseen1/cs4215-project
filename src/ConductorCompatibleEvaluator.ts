@@ -18,7 +18,7 @@ export class ConductorCompatibleDustEvaluator extends BasicEvaluator {
         try {
             // mapping of specific conductor-compatible builtins
             const custom_builtins = {
-                'display' : this.conductor.sendOutput,
+                'display' : this.conductor.sendOutput.bind(this),
             }
 
             const [result, ownership_dag] = this.evaluator.evaluate(chunk, custom_builtins);
