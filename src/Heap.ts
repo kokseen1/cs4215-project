@@ -608,7 +608,7 @@ export class Heap {
                                             ? "<callframe>"
                                             : this.is_Builtin(x)
                                                 ? "<builtin>"
-                                                : "unknown word tag: " + this.word_to_string(x)
+                                                : "unknown word tag: " + this.word_to_string(x) + "at [" + x + "]"
 
     public JS_value_to_address = x =>
         is_boolean(x)
