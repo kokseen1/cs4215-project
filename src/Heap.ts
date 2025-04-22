@@ -420,11 +420,14 @@ export class Heap {
         const a = this.stringPool[hash];
 
         if (a !== undefined) {
-            let i;
-            for (i = 0; i < a.length; i++) {
-                if (a[i].string === string)
-                    return a[i].address;
-            }
+            // let i
+            // for (i = 0; i < a.length; i++) {
+                // if (a[i].string === string)
+                    // return a[i].address;
+            // }
+
+            // always add a new entry to prevent conflicts with single ownership
+            let i = a.length
             const address = this.heap_allocate(this.String_tag, 2);
             this.heap_set_4_bytes_at_offset(address, 1, hash);
             this.heap_set_2_bytes_at_offset(address, 5, i);
