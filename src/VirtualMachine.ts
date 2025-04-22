@@ -86,7 +86,7 @@ export class VirtualMachine {
             instr => {
                 const blockframe = this.RTS.pop()
                 this.E = this.heap.heap_get_Blockframe_environment(blockframe)
-                // this.free(blockframe)
+                this.heap.free_node(blockframe)
             },
         LD:
             instr => {
