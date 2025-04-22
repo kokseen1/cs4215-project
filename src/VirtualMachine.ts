@@ -255,7 +255,7 @@ export class VirtualMachine {
         //print_code(instrs)
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
-            pprint(instrs[this.PC])
+            // pprint(instrs[this.PC])
             //process.stdout.write("PC: " + this.PC + ": ")
             //console.log(this.instrs[this.PC])
             //display(PC, "PC: ")
