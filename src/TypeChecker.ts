@@ -10,6 +10,7 @@ export class TypeChecker {
         }
         for (let i = 0; i < arg_types.length; i++) {
             if (!(this.equal_type(param_types[i], arg_types[i]))) {
+                if (param_types[i] === "void") { continue; } 
                 let relaxed_arg_type = arg_types[i].replace("mut ", "")
                 if (!(this.equal_type(param_types[i], relaxed_arg_type))) {
                     return false;
@@ -58,11 +59,12 @@ export class TypeChecker {
         ">": { "type": this.number_comparison_type },
         "<=": { "type": this.number_comparison_type },
         ">=": { "type": this.number_comparison_type },
-        "==": { "type": this.number_comparison_type },
         "&&": { "type": this.binary_bool_type },
         "||": { "type": this.binary_bool_type },
         "-unary": { "type": this.unary_arith_type },
         "!": { "type": this.unary_bool_type },
+        "==": { "type": { tag: "fun", params: ["void", "void"], ret: "bool", built_in: true } },
+        "display": { "type": { tag: "fun", params: ["void"], ret: "void", built_in: true } }
     }
 
     // A type environment is null or a pair 
