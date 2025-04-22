@@ -9,9 +9,15 @@ export class VirtualMachine {
     private RTS: any[];
     private heap: Heap;
     private instrs: any[];
+    private custom_builtins;
 
     constructor(custom_builtins) {
-        this.init_builtins(custom_builtins)
+        this.custom_builtins = custom_builtins
+        this.init_builtins()
+    }
+
+    private get_display_func = () => {
+        return this.custom_builtins['display']
     }
 
     private free = (addr) => {
@@ -19,7 +25,7 @@ export class VirtualMachine {
         // Do not free literals such as True, False
         // Should not free the last value-producing statement
         this.heap.free_node(addr)
-        console.log('Freed "' + val + '" from [' + addr + ']');
+        this.get_display_func()('Freed "' + val + '" from [' + addr + ']');
     }
 
     private free_variables = (positions) => {
@@ -34,7 +40,7 @@ export class VirtualMachine {
             instr => {
                 const addr = this.heap.JS_value_to_address(instr.val);
                 if (this.heap.is_String(addr)) {
-                    console.log('Allocated "' + instr.val + '" at [' + addr + ']');
+                    this.get_display_func()('Allocated "' + instr.val + '" at [' + addr + ']');
                 }
                 return push(this.OS, addr);
             },
@@ -205,10 +211,10 @@ export class VirtualMachine {
 
     private builtins = {}
     private builtin_array = []
-    private init_builtins = (custom_builtins) => {
+    private init_builtins = () => {
         let i = 0
         for (const key in this.builtin_implementation) {
-            const custom_fn = custom_builtins[key]
+            const custom_fn = this.custom_builtins[key]
             const builtin_fn = this.builtin_implementation[key](custom_fn)
             this.builtins[key] =
             {
@@ -249,7 +255,7 @@ export class VirtualMachine {
         //print_code(instrs)
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
-            // pprint(instrs[this.PC])
+            pprint(instrs[this.PC])
             //process.stdout.write("PC: " + this.PC + ": ")
             //console.log(this.instrs[this.PC])
             //display(PC, "PC: ")

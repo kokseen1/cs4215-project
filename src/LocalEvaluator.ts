@@ -1,9 +1,13 @@
-import { to_diagon } from './Utils';
+import { display, to_diagon } from './Utils';
 import { DustEvaluator } from './Evaluator';
 
 export class LocalDustEvaluator {
     private evaluator: DustEvaluator;
     private diagon;
+
+    private custom_builtins = {
+        'display': console.log 
+    }
 
     constructor() {
         this.evaluator = new DustEvaluator();
@@ -24,7 +28,7 @@ export class LocalDustEvaluator {
     }
 
     async evaluateChunk(chunk: string, visualize_ownership: boolean = false) {
-        const [result, ownership_dag] = this.evaluator.evaluate(chunk);
+        const [result, ownership_dag] = this.evaluator.evaluate(chunk, this.custom_builtins);
         console.log(`Result of expression: ${result}`);
         if (visualize_ownership) {
             console.log("Ownership visualization:");
@@ -35,7 +39,7 @@ export class LocalDustEvaluator {
     async testChunk(chunk: string, expected_type_or_error, visualize_ownership) {
         let result, ownership_dag;
         try {
-            [result, ownership_dag] = this.evaluator.evaluate(chunk);
+            [result, ownership_dag] = this.evaluator.evaluate(chunk, this.custom_builtins);
         }
         catch (e) {
             result = e + "";
