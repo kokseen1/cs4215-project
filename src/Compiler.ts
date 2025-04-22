@@ -171,9 +171,7 @@ export class Compiler {
             }
         }
 
-        if (positions.length > 0) {
-            this.last_drop_positions = positions;
-        }
+        this.last_drop_positions = positions;
 
         return positions;
     }
@@ -280,6 +278,8 @@ export class Compiler {
                     // don't lose ownership to builtins
                     if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
                         has_move_trait(arg.inferred_type)) {
+                        pprint(this.builtin_compile_frame)
+                        pprint(comp)
                         this.lose_ownership(ce, arg)
                         this.add_ownership_dag(arg.sym, comp.fun.sym + "()");
                     }
@@ -473,8 +473,9 @@ export class Compiler {
         this.wc = 0;
         this.instrs = [];
         this.compile(program, this.global_compile_environment);
+        // do not drop variables from global scope
         // do not drop the last value-producing result
-        this.last_drop_positions.pop();
+        this.last_drop_positions.length = 0;
         this.instrs[this.wc] = { tag: "DONE" };
         return [this.instrs, this.ownership_dag]
     };
