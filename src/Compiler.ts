@@ -9,14 +9,12 @@ export class Compiler {
     private ce_size_bef_fun = -1;
     private builtin_compile_frame
     private constant_compile_frame
-    private last_drop_positions;
 
     constructor(builtins, constants) {
         this.builtin_compile_frame = Object.keys(builtins)
         this.constant_compile_frame = Object.keys(constants)
         this.global_compile_environment =
             [this.builtin_compile_frame, this.constant_compile_frame]
-        this.last_drop_positions = [];
     }
 
     // ************************
@@ -170,8 +168,6 @@ export class Compiler {
                 }
             }
         }
-
-        this.last_drop_positions = positions;
 
         return positions;
     }
@@ -472,8 +468,8 @@ export class Compiler {
         this.instrs = [];
         this.compile(program, this.global_compile_environment);
         // do not drop variables from global scope
-        // do not drop the last value-producing result
-        this.last_drop_positions.length = 0;
+        // so that the last value-producing result can be captured 
+        this.instrs[this.wc - 2].to_free.length = 0;
         this.instrs[this.wc] = { tag: "DONE" };
         return [this.instrs, this.ownership_dag]
     };
