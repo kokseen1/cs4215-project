@@ -278,8 +278,6 @@ export class Compiler {
                     // don't lose ownership to builtins
                     if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
                         has_move_trait(arg.inferred_type)) {
-                        pprint(this.builtin_compile_frame)
-                        pprint(comp)
                         this.lose_ownership(ce, arg)
                         this.add_ownership_dag(arg.sym, comp.fun.sym + "()");
                     }
