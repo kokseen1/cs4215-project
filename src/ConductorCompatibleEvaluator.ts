@@ -9,14 +9,19 @@ export class ConductorCompatibleDustEvaluator extends BasicEvaluator {
 
     constructor(conductor: IRunnerPlugin) {
         super(conductor);
-        this.evaluator = new DustEvaluator;
+        this.evaluator = new DustEvaluator();
         this.executionCount = 0;
     }
 
     async evaluateChunk(chunk: string): Promise<void> {
         this.executionCount++;
         try {
-            const [result, ownership_dag] = this.evaluator.evaluate(chunk);
+            // mapping of specific conductor-compatible builtins
+            const custom_builtins = {
+                'display' : this.conductor.sendOutput,
+            }
+
+            const [result, ownership_dag] = this.evaluator.evaluate(chunk, custom_builtins);
 
             // Send the result to the REPL
             this.conductor.sendOutput(`Result of expression: ${result.toString()}`);

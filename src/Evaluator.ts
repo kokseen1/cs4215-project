@@ -16,7 +16,7 @@ export class DustEvaluator {
         this.visitor = new DustEvaluatorVisitor();
     }
 
-    public evaluate(chunk) {
+    public evaluate(chunk, custom_builtins={}) {
         const inputStream = CharStream.fromString(chunk);
         const lexer = new DustLexer(inputStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -32,7 +32,7 @@ export class DustEvaluator {
         this.typeChecker = new TypeChecker();
 
         // Instantiate the VM
-        this.vm = new VirtualMachine();
+        this.vm = new VirtualMachine(custom_builtins);
 
         // Instantiate the compiler
         this.compiler =

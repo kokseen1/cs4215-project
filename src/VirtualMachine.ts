@@ -10,8 +10,8 @@ export class VirtualMachine {
     private heap: Heap;
     private instrs: any[];
 
-    constructor() {
-        this.init_builtins()
+    constructor(custom_builtins) {
+        this.init_builtins(custom_builtins)
     }
 
     private free = (addr) => {
@@ -189,9 +189,10 @@ export class VirtualMachine {
             (this.heap.address_to_JS_value(v)))
 
     private builtin_implementation = {
-        display: () => {
+        display: (custom_fn) => () => {
+            const fn = custom_fn ? custom_fn : display
             const address = this.OS.pop()
-            display(this.heap.address_to_JS_value(address))
+            fn(this.heap.address_to_JS_value(address))
             return address
         },
     }
@@ -204,16 +205,18 @@ export class VirtualMachine {
 
     private builtins = {}
     private builtin_array = []
-    private init_builtins = () => {
+    private init_builtins = (custom_builtins) => {
         let i = 0
         for (const key in this.builtin_implementation) {
+            const custom_fn = custom_builtins[key]
+            const builtin_fn = this.builtin_implementation[key](custom_fn)
             this.builtins[key] =
             {
                 tag: 'BUILTIN',
                 id: i,
-                arity: arity(this.builtin_implementation[key])
+                arity: arity(builtin_fn)
             }
-            this.builtin_array[i++] = this.builtin_implementation[key]
+            this.builtin_array[i++] = builtin_fn
         }
     }
 
