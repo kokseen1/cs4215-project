@@ -24,7 +24,7 @@ export class ConductorCompatibleDustEvaluator extends BasicEvaluator {
             const [result, ownership_dag] = this.evaluator.evaluate(chunk, custom_builtins);
 
             // Send the result to the REPL
-            this.conductor.sendOutput(`Result of expression: ${result.toString()}`);
+            this.conductor.sendOutput(`Result of expression: ${result}`);
         } catch (error) {
             // Handle errors and send them to the REPL
             if (error instanceof Error) {
