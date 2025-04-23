@@ -83,7 +83,7 @@ actual argument types: [ & i32 ]`);
     test(`
 fn test(a: & i32) {}
 
-let mut x = 7; // x has to be mut instead
+let mut x = 7;
 test(& mut x);
 `, undefined);
 
