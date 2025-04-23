@@ -7,7 +7,7 @@ export const Traits = {
     "String": TRAIT_DROP
 }
 
-export const has_move_trait = (type) =>
+export const has_drop_trait = (type) =>
     Traits[type] === TRAIT_DROP;
 
 export const has_copy_trait = (type) =>

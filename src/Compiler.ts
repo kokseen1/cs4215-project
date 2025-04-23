@@ -1,4 +1,4 @@
-import { has_copy_trait, has_move_trait, Traits } from './Traits';
+import { has_copy_trait, has_drop_trait, Traits } from './Traits';
 import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, lookup_type } from './Utils';
 import { DustParser } from "./parser/src/DustParser";
 
@@ -273,14 +273,14 @@ export class Compiler {
                     this.compile(arg, ce)
                     // don't lose ownership to builtins
                     if (!this.builtin_compile_frame.includes(comp.fun.sym) &&
-                        has_move_trait(arg.inferred_type)) {
+                        has_drop_trait(arg.inferred_type)) {
                         this.lose_ownership(ce, arg)
                         this.add_ownership_dag(arg.sym, comp.fun.sym + "()");
                     }
                 }
                 this.instrs[this.wc++] = { tag: 'CALL', arity: comp.args.length }
 
-                // if (has_move_trait(comp.fun.inferred_type)) {
+                // if (has_drop_trait(comp.fun.inferred_type)) {
                 //     // free function application statements without assignments
                 //     this.instrs[this.wc++] = { tag: 'DROP_POP' }
                 // }
@@ -291,7 +291,7 @@ export class Compiler {
                 this.compile(comp.expr, ce)
 
                 const expr_type = comp.expr.inferred_type;
-                if (has_move_trait(expr_type)) {
+                if (has_drop_trait(expr_type)) {
                     this.move_ownership(ce, comp.expr, comp);
                 }
 
@@ -320,7 +320,7 @@ export class Compiler {
                 for (const prm of comp.prms) {
                     const type = prm.type.type;
                     this.set_cte_type(extended_ce, prm.sym, type);
-                    if (has_move_trait(type) && prm.type.ref !== true)
+                    if (has_drop_trait(type) && prm.type.ref !== true)
                         this.gain_ownership(extended_ce, prm)
                 }
                 this.compile(comp.body, extended_ce)
@@ -354,7 +354,7 @@ export class Compiler {
                 // expr type must have already been inferred at this point
                 const expr_type = comp.expr.inferred_type;
                 this.set_cte_type(ce, comp.sym, expr_type)
-                if (has_move_trait(expr_type)) {
+                if (has_drop_trait(expr_type)) {
                     this.move_ownership(ce, comp.expr, comp);
                 }
 
@@ -378,7 +378,7 @@ export class Compiler {
             (comp, ce) => {
                 this.compile(comp.expr, ce)
                 const expr_type = comp.expr.inferred_type;
-                if (has_move_trait(expr_type)) {
+                if (has_drop_trait(expr_type)) {
                     // lose ownership, pass to caller
                     this.lose_ownership(ce, comp.expr)
                 }
