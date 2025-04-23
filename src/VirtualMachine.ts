@@ -71,8 +71,6 @@ export class VirtualMachine {
             },
         DROP:
             instr => {
-                // TOOD: more reliable way to check
-                // dont pop if it is the last value-producing statement
                 const to_free = instr.to_free;
                 this.free_variables(to_free.map(x => x.pos));
             },
