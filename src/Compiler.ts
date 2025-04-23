@@ -130,7 +130,6 @@ export class Compiler {
         this.lose_ownership(ce, from)
         if (this.get_compile_time_object(ce, to.sym).owner === true) {
             // drop if it was already owning something (reassignment)
-            const pos = this.compile_time_environment_position(ce, to.sym);
             this.generate_instr(this.make_drop_instr([{
                 sym: to.sym,
                 pos: this.compile_time_environment_position(ce, to.sym)
@@ -383,12 +382,7 @@ export class Compiler {
                     this.lose_ownership(ce, comp.expr)
                 }
                 this.generate_drop_instr(this.ce_size_bef_fun, ce);
-                // if (comp.expr.tag === 'app') {
-                //     // tail call: turn CALL into TAILCALL
-                //     this.instrs[this.wc - 1].tag = 'TAIL_CALL'
-                // } else {
                 this.instrs[this.wc++] = { tag: 'RESET' }
-                // }
             },
         fun:
             (comp, ce) => {
