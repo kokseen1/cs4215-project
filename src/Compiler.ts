@@ -25,7 +25,7 @@ export class Compiler {
     // compile-time frames, and a compile-time frame 
     // is an array of symbols
 
-    private get_compile_time_value = (env, x) => {
+    private get_compile_time_object = (env, x) => {
         const [frame_index, value_index] =
             this.compile_time_environment_position(env, x)
         return env[frame_index][value_index];
@@ -89,14 +89,14 @@ export class Compiler {
 
     private gain_ownership = (ce, comp) => {
         const sym = this.get_symbol(comp)
-        const ctv = this.get_compile_time_value(ce, sym);
+        const ctv = this.get_compile_time_object(ce, sym);
         ctv.owner = true;
         //console.log(sym + " gained ownership");
     }
 
     private basic_lose = (ce, comp) => {
         const sym = this.get_symbol(comp)
-        const ctv = this.get_compile_time_value(ce, sym);
+        const ctv = this.get_compile_time_object(ce, sym);
         if (ctv.owner === false)
             error(sym + " is already moved")
         ctv.owner = false;
@@ -104,12 +104,12 @@ export class Compiler {
     }
 
     private get_cte_type = (ce, sym) => {
-        const ctv = this.get_compile_time_value(ce, sym);
+        const ctv = this.get_compile_time_object(ce, sym);
         return ctv.type;
     }
 
     private set_cte_type = (ce, sym, type) => {
-        const ctv = this.get_compile_time_value(ce, sym);
+        const ctv = this.get_compile_time_object(ce, sym);
         ctv.type = type;
     }
 
@@ -128,7 +128,7 @@ export class Compiler {
     private move_ownership = (ce, from, to) => {
         // lose first then gain back, to handle `x = x - 1;`
         this.lose_ownership(ce, from)
-        if (this.get_compile_time_value(ce, to.sym).owner === true) {
+        if (this.get_compile_time_object(ce, to.sym).owner === true) {
             // drop if it was already owning something (reassignment)
             const pos = this.compile_time_environment_position(ce, to.sym);
             this.generate_instr(this.make_drop_instr([{
@@ -197,7 +197,7 @@ export class Compiler {
         nam:
             // store precomputed position information in LD instruction
             (comp, ce) => {
-                const ctv = this.get_compile_time_value(ce, comp.sym);
+                const ctv = this.get_compile_time_object(ce, comp.sym);
                 if (ctv.owner === false)
                     error("use of moved value " + comp.sym);
                 comp.inferred_type = ctv.type;
