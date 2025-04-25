@@ -1,6 +1,5 @@
 import { has_copy_trait, has_drop_trait, Traits } from './Traits';
 import { pprint, error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, lookup_type } from './Utils';
-import { DustParser } from "./parser/src/DustParser";
 
 export class Compiler {
     private instrs = [];
@@ -91,7 +90,6 @@ export class Compiler {
         const sym = this.get_symbol(comp)
         const ctv = this.get_compile_time_object(ce, sym);
         ctv.owner = true;
-        //console.log(sym + " gained ownership");
     }
 
     private basic_lose = (ce, comp) => {
@@ -100,7 +98,6 @@ export class Compiler {
         if (ctv.owner === false)
             error(sym + " is already moved")
         ctv.owner = false;
-        //console.log(sym + " lost ownership");
     }
 
     private get_cte_type = (ce, sym) => {
@@ -116,7 +113,6 @@ export class Compiler {
     private lose_ownership = (ce, comp) => {
         switch (comp.tag) {
             case 'nam':
-            case 'fun':
                 this.basic_lose(ce, comp);
                 break;
             // cases such as 'lit' do not need to lose ownership
@@ -413,26 +409,7 @@ export class Compiler {
         }
     }
 
-    // Should only be used for declarations
     private make_cte_object = (comp) => {
-        // let rhs_type;
-        // switch (comp.tag) {
-        //     case "let":
-        //     case "const":
-        //         rhs_type = get_expr_type(comp.expr);
-        //         break;
-        //     case "fun":
-        //         rhs_type = comp.retType.type;
-        //         // should work if type checker implements fun
-        //         // rhs_type = get_expr_type(comp.expr);
-        //         break;
-        //     default:
-        //         error("not a declaration: " + comp)
-        // }
-
-        // pprint("comp")
-        // pprint(comp)
-        // pprint(rhs_type)
         if (comp.sym === undefined)
             error("Object " + comp + " does not have symbol")
         return {
