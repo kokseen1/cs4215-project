@@ -1,7 +1,16 @@
-fn test(a: & mut i32, b: bool) {
-    *a = 5;
-}
+fn g(b: String) -> String {
+    // b gains ownership from caller
+    let c = String::from("xyz");
+    return c; // pass ownership of c to caller
+} // b is freed
 
-let x = 1;
-let a = &mut x;
-*a
+fn f(a: String) -> String {
+    // a gains ownership from caller
+    let b = g(a); // b gains ownership
+    return b; // pass ownership of b to caller
+} // a is freed
+
+let x = String::from("abc");
+let mut y = String::from("freeme");
+y = f(x); // reassignment: old value of y ("freeme") is freed, y now owns "xyz"
+display(y);
