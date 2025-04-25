@@ -1,6 +1,5 @@
 import { Heap } from './Heap';
 import { error, display, push, peek, is_boolean, is_null, is_number, is_string, is_undefined, arity, pprint } from './Utils';
-import { DustParser } from './parser/src/DustParser';
 
 export class VirtualMachine {
     private OS: any[];
@@ -76,7 +75,6 @@ export class VirtualMachine {
             },
         DROP_POP:
             instr => {
-                // TODO: dont pop if it is the last value-producing statement
                 // pop from the OS and free the value
                 this.free(this.OS.pop())
             },
@@ -152,7 +150,6 @@ export class VirtualMachine {
                 } else {
                     this.PC--
                 }
-                // this.free(top_frame)
             }
     }
 
@@ -170,7 +167,6 @@ export class VirtualMachine {
             : (is_string(x) && is_string(y))
                 ? x + y
                 : error("+ expects two numbers or two strings"),
-        // todo: add error handling to JS for the following, too
         '*': (x, y) => x * y,
         '-': (x, y) => x - y,
         '/': (x, y) => x / y,
@@ -225,7 +221,6 @@ export class VirtualMachine {
     }
 
     private apply_builtin = builtin_id => {
-        // display(builtin_id, "apply_builtin: builtin_id:")
         const result = this.builtin_array[builtin_id]()
         this.OS.pop() // pop fun
         push(this.OS, result)
@@ -254,18 +249,11 @@ export class VirtualMachine {
         while (!(this.instrs[this.PC].tag === 'DONE')) {
             // display("next instruction: ")
             // pprint(instrs[this.PC])
-            //process.stdout.write("PC: " + this.PC + ": ")
-            //console.log(this.instrs[this.PC])
             //display(PC, "PC: ")
             //print_OS("\noperands:            ");
             //print_RTS("\nRTS:            ");
             const instr = this.instrs[this.PC++]
             this.microcode[instr.tag](instr)
-            // console.log("OS: ");
-            // this.OS.map((e, i) => {
-            //     console.log(i + ": " + e)
-            // })
-            // this.heap.heap_Environment_display(this.E)
         }
         const ret = this.heap.address_to_JS_value(peek(this.OS, 0));
         return ret
