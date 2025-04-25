@@ -44,42 +44,6 @@ export class Heap {
     private HEAP
     private heap_size
 
-    // for debugging: display all bits of the heap
-    // const heap_display = s => {
-    //     display("", "heap: " + s)
-    //     for (let i = 0; i < heap_size; i++) {
-    //         display(word_to_string(heap_get(i)), 
-    //                 stringify(i) + " " +
-    //                 stringify(heap_get(i)) +
-    //                 " ")
-    //     }
-    // }
-
-    // private mark_bit_offset = 7 // use last unused byte
-
-    // private MARKED = 1
-    // private UNMARKED = 0 // unused byte is 0-initialized
-
-    // const heap_get_mark_bit = address =>
-    //     heap_get_byte_at_offset(address, mark_bit_offset)
-
-    // const heap_set_mark_bit = (address, value) =>
-    //     heap_set_byte_at_offset(address, mark_bit_offset, value)
-
-    // const mark = v => {
-    //     if (v === undefined) return
-    //     if (v >= heap_size) return
-    //     if (heap_get_mark_bit(v) === UNMARKED) {
-    //         heap_set_mark_bit(v, MARKED)
-    //         for (let i = 0; i < heap_get_number_of_children(v); i++) {
-    //             const c = heap_get_child(v, i)
-    //             mark(c)
-    //         }
-    //     }
-    // }
-
-    // private HEAPBOTTOM = 0
-
     public free_node = (addr) => {
         // Free string from string pool
         if (this.is_String(addr)) {
@@ -91,39 +55,6 @@ export class Heap {
         // set it as the new head
         this.free = addr
     }
-
-    // const sweep = () => {
-    //     let v = HEAPBOTTOM
-    //     while (v < heap_size) {
-    //         if (heap_get_mark_bit(v) === UNMARKED) {
-    //             free_node(v)
-    //         } else {
-    //             heap_set_mark_bit(v, UNMARKED)
-    //         }
-    //         v = v + node_size
-    //     }
-    // }
-
-    // const mark_stack = s => {
-    //     for (const v of s) {
-    //         mark(v)
-    //     }
-    // }
-
-    // const mark_roots = () => {
-    //     mark_stack(OS)
-    //     mark_stack(RTS)
-    //     const literals = [True, False, Null, Undefined, Unassigned]
-    //     mark_stack(literals)
-    // }
-
-    // const mark_sweep = () => {
-    //     mark_roots()
-    //     sweep()
-    //     if (free === -1) {
-    //         error("heap memory exhausted")
-    //     }
-    // }
 
     // heap_allocate allocates a given number of words 
     // on the heap and marks the first word with a 1-byte tag.
@@ -139,13 +70,9 @@ export class Heap {
     private free
 
     private heap_allocate = (tag, size) => {
-        // if (size > this.node_size) {
-        //     error("limitation: nodes cannot be larger than 10 words")
-        // }
         // a value of -1 in free indicates the
         // end of the free list
         if (this.free === -1) {
-            // mark_sweep()
             error("Ran out of memory")
         }
         const address = this.free
@@ -158,11 +85,6 @@ export class Heap {
             size)
         return address
     }
-
-    // private heap_already_copied = node =>
-    //     this.heap_get_forwarding_address(node) >= to_space
-    //     &&
-    //     this.heap_get_forwarding_address(node) <= this.free
 
     private heap_set_forwarding_address = (node, address) =>
         this.HEAP.setInt32(node * this.word_size, address)
@@ -422,8 +344,8 @@ export class Heap {
         if (a !== undefined) {
             // let i
             // for (i = 0; i < a.length; i++) {
-                // if (a[i].string === string)
-                    // return a[i].address;
+            // if (a[i].string === string)
+            // return a[i].address;
             // }
 
             // always add a new entry to prevent conflicts with single ownership
@@ -662,12 +584,4 @@ export class Heap {
         }
         return frame_address
     }
-
-
-
-    // compile-time frames only need synbols (keys), no values
-    private builtin_compile_frame
-    private constant_compile_frame
-    private global_compile_environment
-
 }
